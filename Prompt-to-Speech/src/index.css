@@ -131,3 +131,14 @@ textarea {
 .fade-up {
   animation: pts-fade-up 0.35s ease forwards;
 }
+
+/* ── Sentence mode tokens ── */
+.word-token.sentence-future  { color: #1e1e30; }
+.word-token.sentence-past    { color: #3a3a52; }
+.word-token.sentence-current {
+  color: #e8e8ff;
+  font-weight: 500;
+  text-shadow:
+    0 0 20px rgba(139, 92, 246, 0.55),
+    0 0 40px rgba(99, 102, 241, 0.20);
+}

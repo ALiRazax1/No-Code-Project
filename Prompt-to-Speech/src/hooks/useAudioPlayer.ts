@@ -1,21 +1,25 @@
 // ─────────────────────────────────────────────────────────
 // hooks/useAudioPlayer.ts
+// Now also exposes audioElRef + isUsingRealAudio so
+// useWaveform can tap into the audio pipeline.
 // ─────────────────────────────────────────────────────────
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { AudioData, PlaybackStatus } from '../types'
 
 export interface UseAudioPlayerReturn {
-  playbackStatus:   PlaybackStatus
-  currentTime:      number
-  currentWordIdx:   number
-  progress:         number
-  volume:           number
-  handlePlayPause:  () => void
-  handleRestart:    () => void
-  handleSeek:       (seconds: number) => void
-  handleVolume:     (v: number) => void
-  formatTime:       (s: number) => string
+  playbackStatus:    PlaybackStatus
+  currentTime:       number
+  currentWordIdx:    number
+  progress:          number
+  volume:            number
+  isUsingRealAudio:  boolean
+  audioElRef:        React.RefObject<HTMLAudioElement | null>
+  handlePlayPause:   () => void
+  handleRestart:     () => void
+  handleSeek:        (seconds: number) => void
+  handleVolume:      (v: number) => void
+  formatTime:        (s: number) => string
 }
 
 function getWordIdxAt(words: AudioData['words'], t: number): number {
@@ -32,10 +36,7 @@ function buildCharMap(words: AudioData['words'], fromIdx: number): number[] {
   const slice = words.slice(Math.max(0, fromIdx))
   const starts: number[] = []
   let pos = 0
-  for (const w of slice) {
-    starts.push(pos)
-    pos += w.word.length + 1
-  }
+  for (const w of slice) { starts.push(pos); pos += w.word.length + 1 }
   return starts
 }
 
@@ -46,10 +47,11 @@ function fmt(s: number): string {
 }
 
 export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerReturn {
-  const [playbackStatus, setPlaybackStatus] = useState<PlaybackStatus>('idle')
-  const [currentTime,    setCurrentTime]    = useState(0)
-  const [currentWordIdx, setCurrentWordIdx] = useState(-1)
-  const [volume,         setVolume]         = useState(0.9)
+  const [playbackStatus,   setPlaybackStatus]   = useState<PlaybackStatus>('idle')
+  const [currentTime,      setCurrentTime]      = useState(0)
+  const [currentWordIdx,   setCurrentWordIdx]   = useState(-1)
+  const [volume,           setVolume]           = useState(0.9)
+  const [isUsingRealAudio, setIsUsingRealAudio] = useState(false)
 
   const rafRef        = useRef<number | null>(null)
   const wallStartRef  = useRef(0)
@@ -62,7 +64,6 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
   const duration = audioData?.duration ?? 0
   const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0
 
-  // ── RAF ───────────────────────────────────────────────
   const stopRaf = useCallback(() => {
     if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
   }, [])
@@ -71,7 +72,6 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
     if (!audioData) return
     seekOffsetRef.current = fromSeconds
     wallStartRef.current  = performance.now()
-
     const tick = () => {
       const elapsed = seekOffsetRef.current + (performance.now() - wallStartRef.current) / 1000
       const t       = Math.min(elapsed, audioData.duration)
@@ -82,10 +82,14 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
     rafRef.current = requestAnimationFrame(tick)
   }, [audioData])
 
-  // ── Speech ────────────────────────────────────────────
   function stopSpeech() {
     try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
-    if (audioElRef.current) { audioElRef.current.pause(); audioElRef.current.src = ''; audioElRef.current = null }
+    if (audioElRef.current) {
+      audioElRef.current.pause()
+      audioElRef.current.src = ''
+      audioElRef.current = null
+    }
+    setIsUsingRealAudio(false)
   }
 
   function startSpeech(words: AudioData['words'], fromIdx: number, audioUrl: string | null) {
@@ -95,9 +99,15 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
       const audio = new Audio(audioUrl)
       audio.volume      = volumeRef.current
       audio.currentTime = words[Math.max(0, fromIdx)]?.startTime ?? 0
-      audio.onended = () => { setCurrentWordIdx(words.length - 1); setPlaybackStatus('ended'); stopRaf() }
+      audio.onended = () => {
+        setCurrentWordIdx(words.length - 1)
+        setPlaybackStatus('ended')
+        setIsUsingRealAudio(false)
+        stopRaf()
+      }
       audio.play().catch(console.error)
       audioElRef.current = audio
+      setIsUsingRealAudio(true)
       return
     }
 
@@ -105,13 +115,12 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
 
     const slicedWords = words.slice(Math.max(0, fromIdx))
     const text        = slicedWords.map(w => w.word).join(' ')
-
     speechFromRef.current = Math.max(0, fromIdx)
     charMapRef.current    = buildCharMap(words, fromIdx)
 
-    const utt   = new SpeechSynthesisUtterance(text)
-    utt.rate    = 0.92
-    utt.volume  = volumeRef.current
+    const utt  = new SpeechSynthesisUtterance(text)
+    utt.rate   = 0.92
+    utt.volume = volumeRef.current
 
     const voices = window.speechSynthesis.getVoices()
     const pick   =
@@ -131,7 +140,7 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
       setCurrentWordIdx(speechFromRef.current + localIdx)
     }
 
-    utt.onend = () => { setCurrentWordIdx(words.length - 1); setPlaybackStatus('ended'); stopRaf() }
+    utt.onend   = () => { setCurrentWordIdx(words.length - 1); setPlaybackStatus('ended'); stopRaf() }
 
     const watchdog = setTimeout(() => {
       if (window.speechSynthesis.speaking) return
@@ -140,10 +149,10 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
     }, 500)
     utt.onstart = () => clearTimeout(watchdog)
 
+    setIsUsingRealAudio(false)
     window.speechSynthesis.speak(utt)
   }
 
-  // ── Controls ─────────────────────────────────────────
   const handlePlayPause = useCallback(() => {
     if (!audioData) return
     if (playbackStatus === 'playing') {
@@ -186,17 +195,12 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioData, playbackStatus, startRaf, stopRaf])
 
-  // ── Volume ────────────────────────────────────────────
   const handleVolume = useCallback((v: number) => {
     volumeRef.current = v
     setVolume(v)
-    // Apply immediately to any active audio element
     if (audioElRef.current) audioElRef.current.volume = v
-    // SpeechSynthesis volume can only be set on next utterance —
-    // nothing to do while speech is running; it picks up on next play.
   }, [])
 
-  // ── Reset when audioData changes ──────────────────────
   useEffect(() => {
     stopRaf(); stopSpeech()
     setPlaybackStatus('idle'); setCurrentTime(0); setCurrentWordIdx(-1)
@@ -207,5 +211,10 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
 
   useEffect(() => () => { stopRaf(); stopSpeech() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { playbackStatus, currentTime, currentWordIdx, progress, volume, handlePlayPause, handleRestart, handleSeek, handleVolume, formatTime: fmt }
+  return {
+    playbackStatus, currentTime, currentWordIdx, progress,
+    volume, isUsingRealAudio, audioElRef,
+    handlePlayPause, handleRestart, handleSeek, handleVolume,
+    formatTime: fmt,
+  }
 }

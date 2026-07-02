@@ -1,37 +1,46 @@
 // ─────────────────────────────────────────────────────────
-// App.tsx
+// App.tsx — Main layout and state orchestration
 // ─────────────────────────────────────────────────────────
 
 import { useState } from 'react'
-import { Mic, Wand2, Volume2, RefreshCw } from 'lucide-react'
+import { Mic, Wand2, Volume2, History } from 'lucide-react'
 
-import type { AppStatus, AudioData } from './types'
+import type { AppStatus, AudioData, HistoryEntry } from './types'
 import { DEFAULT_PROMPT, VOICE_PROFILES } from './data/mockData'
 import { generateAudio } from './services/ttsService'
 import VoiceSelector  from './components/VoiceSelector'
 import SubtitleCanvas from './components/SubtitleCanvas'
 import AudioPlayer    from './components/AudioPlayer'
+import HistoryPanel   from './components/HistoryPanel'
 
-const CHAR_LIMIT = 10_000
+const CHAR_LIMIT    = 10_000
+const MAX_HISTORY   = 20
 
 export default function App() {
+  // ── Form ─────────────────────────────────────────────
   const [prompt,  setPrompt]  = useState<string>(DEFAULT_PROMPT)
   const [voiceId, setVoiceId] = useState<string>('nova')
 
+  // ── App state machine ─────────────────────────────────
   const [appStatus, setAppStatus] = useState<AppStatus>('idle')
   const [audioData, setAudioData] = useState<AudioData | null>(null)
   const [errorMsg,  setErrorMsg]  = useState<string | null>(null)
+
+  // ── Word sync bridge ──────────────────────────────────
   const [currentWordIdx, setCurrentWordIdx] = useState(-1)
+
+  // ── Session history ───────────────────────────────────
+  const [history,     setHistory]     = useState<HistoryEntry[]>([])
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const charCount = prompt.length
   const charPct   = charCount / CHAR_LIMIT
-
-  // ── Colour of the counter: neutral → amber → red ──────
   const counterColor =
     charPct >= 1    ? '#f87171' :
     charPct >= 0.85 ? '#fbbf24' :
     '#2e2e48'
 
+  // ─────────────────────────────────────────────────────
   async function handleGenerate() {
     const text = prompt.trim()
     if (!text || appStatus === 'loading' || charCount > CHAR_LIMIT) return
@@ -45,6 +54,15 @@ export default function App() {
       const data = await generateAudio(text, voiceId)
       setAudioData(data)
       setAppStatus('ready')
+
+      // Prepend to history (cap at MAX_HISTORY)
+      const entry: HistoryEntry = {
+        id:            Date.now().toString(),
+        audioData:     data,
+        generatedAt:   new Date(),
+        promptPreview: text.slice(0, 80) + (text.length > 80 ? '…' : ''),
+      }
+      setHistory(prev => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Generation failed. Try again.'
       setErrorMsg(msg)
@@ -52,8 +70,16 @@ export default function App() {
     }
   }
 
-  const voiceName =
-    VOICE_PROFILES.find(v => v.id === voiceId)?.name ?? 'Nova'
+  // Restore a history entry without re-generating
+  function handleHistorySelect(entry: HistoryEntry) {
+    setAudioData(entry.audioData)
+    setPrompt(entry.audioData.text)
+    setVoiceId(entry.audioData.voiceId)
+    setCurrentWordIdx(-1)
+    setAppStatus('ready')
+  }
+
+  const voiceName = VOICE_PROFILES.find(v => v.id === voiceId)?.name ?? 'Nova'
 
   return (
     <div className="min-h-screen bg-[#05050c] px-5 pb-24 pt-12 font-sans text-[#e0e0f0]">
@@ -61,13 +87,35 @@ export default function App() {
 
         {/* ── Header ── */}
         <header className="mb-11 text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[rgba(99,102,241,0.22)] bg-[rgba(99,102,241,0.08)] py-[5px] pl-2 pr-3.5">
-            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]">
-              <Mic size={11} color="white" strokeWidth={2.5} />
-            </span>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[#a5b4fc]">
-              AI Voice Studio
-            </span>
+
+          {/* Badge row */}
+          <div className="mb-6 flex items-center justify-center gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(99,102,241,0.22)] bg-[rgba(99,102,241,0.08)] py-[5px] pl-2 pr-3.5">
+              <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]">
+                <Mic size={11} color="white" strokeWidth={2.5} />
+              </span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[#a5b4fc]">
+                AI Voice Studio
+              </span>
+            </div>
+
+            {/* History trigger */}
+            <button
+              onClick={() => setHistoryOpen(true)}
+              aria-label="Open history"
+              title="Generation history"
+              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[#16162a] bg-[#0a0a14] text-[#3d3d58] transition-colors hover:border-[rgba(99,102,241,0.3)] hover:text-[#818cf8]"
+            >
+              <History size={15} />
+              {history.length > 0 && (
+                <span
+                  className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                  style={{ background: '#6366f1' }}
+                >
+                  {history.length > 9 ? '9+' : history.length}
+                </span>
+              )}
+            </button>
           </div>
 
           <h1 className="gradient-text mb-3 text-[clamp(34px,6vw,50px)] font-extrabold leading-[1.05] tracking-[-0.04em]">
@@ -83,16 +131,11 @@ export default function App() {
           aria-label="Prompt input"
           className="card-top-shine relative mb-3.5 rounded-[20px] border border-[#16162a] bg-[#0a0a14] p-6"
         >
-          {/* Label row */}
           <div className="mb-2.5 flex items-center justify-between">
-            <label
-              htmlFor="prompt-textarea"
-              className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2e2e48]"
-            >
+            <label htmlFor="prompt-textarea"
+              className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2e2e48]">
               Script
             </label>
-
-            {/* ── Character counter ── */}
             <span
               className="font-mono text-[11px] tabular-nums transition-colors duration-300"
               style={{ color: counterColor }}
@@ -107,12 +150,11 @@ export default function App() {
             onChange={e => setPrompt(e.target.value)}
             placeholder="Enter your script here…"
             disabled={appStatus === 'loading'}
-            className="mb-3 block w-full resize-y rounded-xl border border-[#14142a] bg-[#06060f] px-4 py-3.5 text-sm leading-[1.75] text-[#c0c0de] placeholder-[#1e1e30] outline-none transition-all duration-200 focus:border-[rgba(99,102,241,0.45)] focus:ring-2 focus:ring-[rgba(99,102,241,0.1)] disabled:opacity-50"
-            rows={5}
             maxLength={CHAR_LIMIT}
+            rows={5}
+            className="mb-3 block w-full resize-y rounded-xl border border-[#14142a] bg-[#06060f] px-4 py-3.5 text-sm leading-[1.75] text-[#c0c0de] placeholder-[#1e1e30] outline-none transition-all duration-200 focus:border-[rgba(99,102,241,0.45)] focus:ring-2 focus:ring-[rgba(99,102,241,0.1)] disabled:opacity-50"
           />
 
-          {/* Over-limit warning */}
           {charCount > CHAR_LIMIT && (
             <p className="mb-3 text-[12px] text-[#f87171]">
               Script exceeds {CHAR_LIMIT.toLocaleString()} characters. Trim it to avoid API errors.
@@ -120,11 +162,7 @@ export default function App() {
           )}
 
           <div className="flex items-stretch gap-3">
-            <VoiceSelector
-              value={voiceId}
-              onChange={setVoiceId}
-              disabled={appStatus === 'loading'}
-            />
+            <VoiceSelector value={voiceId} onChange={setVoiceId} disabled={appStatus === 'loading'} />
             <GenerateButton
               status={appStatus}
               disabled={!prompt.trim() || appStatus === 'loading' || charCount > CHAR_LIMIT}
@@ -176,22 +214,24 @@ export default function App() {
             </p>
           </div>
         )}
-
       </div>
+
+      {/* ── History panel ── */}
+      {historyOpen && (
+        <HistoryPanel
+          entries={history}
+          onSelect={handleHistorySelect}
+          onClose={() => setHistoryOpen(false)}
+        />
+      )}
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────
-// GenerateButton
-// ─────────────────────────────────────────────────────────
-interface GenerateButtonProps {
-  status:   AppStatus
-  disabled: boolean
-  onClick:  () => void
-}
-
-function GenerateButton({ status, disabled, onClick }: GenerateButtonProps) {
+function GenerateButton({ status, disabled, onClick }: {
+  status: AppStatus; disabled: boolean; onClick: () => void
+}) {
   const isLoading = status === 'loading'
   return (
     <button
@@ -206,15 +246,9 @@ function GenerateButton({ status, disabled, onClick }: GenerateButtonProps) {
       }}
     >
       {isLoading ? (
-        <>
-          <span aria-hidden className="spin h-[14px] w-[14px] rounded-full border-2 border-[#6b6b8a] border-t-[#a5b4fc]" />
-          Generating
-        </>
+        <><span aria-hidden className="spin h-[14px] w-[14px] rounded-full border-2 border-[#6b6b8a] border-t-[#a5b4fc]" />Generating</>
       ) : (
-        <>
-          <Wand2 size={15} />
-          Generate
-        </>
+        <><Wand2 size={15} />Generate</>
       )}
     </button>
   )

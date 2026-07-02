@@ -1,88 +1,109 @@
-# Prompt to Speech · AI Voice Studio
+# Prompt to Speech
 
-A sleek, single-page Prompt-to-Speech web app built with React, TypeScript, and Tailwind CSS.
+A web application that converts text into speech using **Claude AI** through prompt-based development. The entire project was created using AI-generated code without manually writing the application's code.
 
 ## Features
 
-- **Custom Audio Player** — no native `<audio>` controls; fully bespoke seek bar, waveform visualiser, and transport buttons
-- **Kinetic Subtitle Canvas** — word-level karaoke-style highlighting synced to playback at 60fps
-- **Voice Profiles** — five selectable AI personas with accent colour indicators
-- **TTS Service layer** — ships in mock mode; swap to ElevenLabs or OpenAI with a single constant change and an API key
-- **SpeechSynthesis fallback** — works entirely in-browser without a backend
+* Convert any text into speech
+* Uses the browser's built-in Text-to-Speech voice by default
+* Supports **ElevenLabs API** for higher-quality AI voices
+* Text highlights and glows in sync with the spoken audio
+* Real-time waveform visualizer
+* Word-by-word and sentence highlighting modes
+* Volume control slider
+* Regenerate button for generating fresh speech without creating a new session
+* Generation history panel
+* Download generated subtitles as an `.srt` file
+* MP3 download support is already integrated
 
-## Stack
+## How It Works
 
-| Tool | Version | Role |
-|---|---|---|
-| React | 18 | UI framework |
-| TypeScript | 5 | Type safety |
-| Vite | 5 | Dev server + bundler |
-| Tailwind CSS | 3 | Utility styling |
-| Lucide React | 0.383 | Icons |
+By default, the application uses your browser's built-in Text-to-Speech engine, so it works without any external API.
 
-## Quick start
+For premium AI voices, you can configure an **ElevenLabs API key** in the project's environment (`.env`) file. Once configured, the application automatically switches to ElevenLabs for speech generation.
 
-```bash
-# 1. Install
-npm install
+> **Note:** Users cannot currently add or manage API keys through the application's interface.
 
-# 2. Start dev server
-npm run dev
+## Features in Detail
 
-# 3. Open http://localhost:5173
-```
+### Generation History
 
-The app runs fully in **mock mode** by default — no API key needed.
+Every successful speech generation is automatically saved to a history panel (up to the latest 20 generations).
 
-## Connecting a real TTS provider
+Each history entry includes:
 
-### ElevenLabs (recommended)
-ElevenLabs returns character-level alignment data that gives precise word timestamps.
+* Voice used
+* Prompt preview
+* Word count
+* Audio duration
+* Relative timestamp (e.g., *Just now*, *3 minutes ago*)
 
-1. Copy `.env.example` → `.env`
-2. Add your key: `VITE_ELEVENLABS_API_KEY=sk_...`
-3. In `src/services/ttsService.ts`, set:
-   ```ts
-   const TTS_PROVIDER: TTSProvider = 'elevenlabs'
-   ```
+The most recent generation is highlighted with a **Latest** badge.
 
-### OpenAI
-OpenAI TTS does not return timestamps; the app uses client-side estimation instead.
+Selecting a history item instantly restores the prompt, selected voice, and generated audio without making another API request.
 
-1. Copy `.env.example` → `.env`
-2. Add your key: `VITE_OPENAI_API_KEY=sk-...`
-3. In `src/services/ttsService.ts`, set:
-   ```ts
-   const TTS_PROVIDER: TTSProvider = 'openai'
-   ```
+The history panel can be closed by:
 
-## Project structure
+* Clicking outside the panel
+* Clicking the close button
+* Pressing the **Escape** key
 
-```
-src/
-├── types.ts                  # Shared TypeScript interfaces
-├── main.tsx                  # Entry point
-├── App.tsx                   # Root layout + state machine
-├── index.css                 # Tailwind + global styles (seek bar, animations)
-│
-├── data/
-│   └── mockData.ts           # Voice profiles, waveform seeds, buildWordTimings()
-│
-├── services/
-│   └── ttsService.ts         # generateAudio() — mock / ElevenLabs / OpenAI
-│
-├── hooks/
-│   └── useAudioPlayer.ts     # RAF timer, SpeechSynthesis, seek/restart logic
-│
-└── components/
-    ├── AudioPlayer.tsx        # Custom transport controls
-    ├── SubtitleCanvas.tsx     # Kinetic word-highlighting display
-    └── VoiceSelector.tsx      # Animated voice dropdown
-```
+---
 
-## Building for production
+### Real-Time Waveform Visualizer
 
-```bash
-npm run build
-# Output: dist/
-```
+The application includes a dynamic waveform visualizer that adapts to the current audio source.
+
+#### ElevenLabs Audio
+
+When using ElevenLabs audio, the visualizer analyzes the actual audio using the Web Audio API.
+
+Features include:
+
+* Live frequency analysis
+* Smooth bar animations
+* Natural decay between frames
+* Persistent audio context for better performance
+* **Live** indicator while real audio is playing
+
+#### Browser Text-to-Speech
+
+Since browser Speech Synthesis cannot be analyzed by the Web Audio API, the application generates a realistic animated waveform that mimics speech using procedural animation.
+
+A **Synth** badge indicates that the visualization is simulated rather than based on live audio.
+
+When playback stops, the waveform smoothly returns to its idle state instead of abruptly resetting.
+
+---
+
+### Sentence Mode
+
+In addition to word-by-word highlighting, the application includes **Sentence Mode**.
+
+When enabled:
+
+* The entire current sentence is highlighted instead of only the current word.
+* A softer glow effect provides a more natural reading experience.
+* Auto-scrolling continues to follow playback seamlessly.
+* Switching between word and sentence mode only changes the visual presentation and does not affect playback.
+
+## Current Limitations
+
+* API keys cannot be added from the UI.
+* ElevenLabs API must be configured manually through the `.env` file.
+* The **Download MP3** button is present but remains disabled while using the browser's default voice because no audio file is generated.
+* Once ElevenLabs is configured, the MP3 download button automatically becomes available without requiring any code changes.
+* Generated voices are not currently saved.
+
+## Future Ideas
+
+* Allow users to add and manage API keys from the application
+* Save generated voices and speech history across sessions
+* Improve and expand download options
+* Support multiple speech providers
+* Add voice customization options such as speed, pitch, and emotion
+* Improve overall UI and user experience
+
+## Acknowledgements
+
+This project was created using **Claude AI** through prompt engineering to explore AI-assisted application development with little to no manual coding.

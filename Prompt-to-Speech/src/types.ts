@@ -46,3 +46,14 @@ export type AppStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 /** Playback state managed by AudioPlayer. */
 export type PlaybackStatus = 'idle' | 'playing' | 'paused' | 'ended';
+
+/** A single entry in the session generation history. */
+export interface HistoryEntry {
+  id:            string;
+  audioData:     AudioData;
+  generatedAt:   Date;
+  promptPreview: string;
+}
+
+/** SubtitleCanvas display modes. */
+export type SubtitleMode = 'word' | 'sentence';
