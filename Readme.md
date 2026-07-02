@@ -29,6 +29,7 @@ A modern chatbot interface generated entirely using **Google Gemini** through pr
 For details, see the project's own `README.md`.
 
 [Chatbot UI](./Chatbot-UI%20Gemini/)
+[Prompt-To-Speech](./Prompt-to-Speech/)
 
 ## Purpose
 
