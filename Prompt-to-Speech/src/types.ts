@@ -57,3 +57,18 @@ export interface HistoryEntry {
 
 /** SubtitleCanvas display modes. */
 export type SubtitleMode = 'word' | 'sentence';
+
+/** Runtime settings managed via the Settings Drawer.
+ *  Persisted to localStorage under the key "pts:settings". */
+export interface AppSettings {
+  /** Which TTS backend to use. */
+  provider:         'mock' | 'elevenlabs' | 'openai'
+  /** API key for the selected provider. */
+  apiKey:           string
+  /** ElevenLabs voice IDs keyed by profile id. */
+  voiceIds:         Record<string, string>
+  /** Playback rate multiplier applied to SpeechSynthesis and <audio>. */
+  playbackRate:     number
+  /** Subtitle canvas font size in px. */
+  subtitleFontSize: number
+}

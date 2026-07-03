@@ -1,45 +1,16 @@
 // ─────────────────────────────────────────────────────────
 // services/ttsService.ts
 //
-// Unified TTS service layer.
-// ─── Switch between providers by changing TTS_PROVIDER. ───
+// Unified TTS service. Provider, API key, and voice IDs are
+// now passed in at call time via AppSettings — no hardcoded
+// constants and no environment variables required.
 //
-// Supported:
-//   'mock'       → Client-side simulation, no API key needed.
-//   'elevenlabs' → ElevenLabs /v1/text-to-speech with timestamps.
-//   'openai'     → OpenAI tts-1 / tts-1-hd model.
+// Switch provider in the Settings Drawer at runtime.
 // ─────────────────────────────────────────────────────────
 
-import type { AudioData } from '../types'
+import type { AudioData, AppSettings } from '../types'
 import { buildWordTimings } from '../data/mockData'
-
-// ── Provider toggle ──────────────────────────────────────
-type TTSProvider = 'mock' | 'elevenlabs' | 'openai'
-const TTS_PROVIDER: TTSProvider = 'mock'
-
-// ── API keys (set in .env) ───────────────────────────────
-const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY as string | undefined
-const OPENAI_API_KEY     = import.meta.env.VITE_OPENAI_API_KEY     as string | undefined
-
-// ── ElevenLabs voice ID map ──────────────────────────────
-// Maps internal profile IDs → ElevenLabs voice IDs.
-// Find yours at https://api.elevenlabs.io/v1/voices
-const EL_VOICE_MAP: Record<string, string> = {
-  nova:    'EXAVITQu4vr4xnSDxMaL', // Bella
-  echo:    'VR6AewLTigWG4xSOukaG', // Arnold
-  shimmer: 'MF3mGyEYCl7XYWbV9V6O', // Elli
-  onyx:    'TxGEqnHWrfWFTfGW9XjX', // Josh
-  alloy:   '21m00Tcm4TlvDq8ikWAM', // Rachel
-}
-
-// ── OpenAI voice map ─────────────────────────────────────
-const OAI_VOICE_MAP: Record<string, string> = {
-  nova:    'nova',
-  echo:    'echo',
-  shimmer: 'shimmer',
-  onyx:    'onyx',
-  alloy:   'alloy',
-}
+import { DEFAULT_VOICE_IDS, DEFAULT_SETTINGS } from '../hooks/useSettings'
 
 // ─────────────────────────────────────────────────────────
 // Public API
@@ -48,36 +19,29 @@ const OAI_VOICE_MAP: Record<string, string> = {
 /**
  * generateAudio — main entry point.
  *
- * @param text    The prompt / script text.
- * @param voiceId One of: nova | echo | shimmer | onyx | alloy
- * @returns       Resolved AudioData ready for the player.
- *
- * @example
- * const data = await generateAudio('Hello world', 'nova')
+ * @param text     The prompt / script text.
+ * @param voiceId  One of: nova | echo | shimmer | onyx | alloy
+ * @param settings Runtime settings from useSettings()
  */
 export async function generateAudio(
-  text: string,
-  voiceId: string,
+  text:     string,
+  voiceId:  string,
+  settings: AppSettings = DEFAULT_SETTINGS,
 ): Promise<AudioData> {
-  switch (TTS_PROVIDER) {
-    case 'elevenlabs': return elevenlabsGenerate(text, voiceId)
-    case 'openai':     return openaiGenerate(text, voiceId)
+  switch (settings.provider) {
+    case 'elevenlabs': return elevenlabsGenerate(text, voiceId, settings)
+    case 'openai':     return openaiGenerate(text, voiceId, settings)
     default:           return mockGenerate(text, voiceId)
   }
 }
 
 // ─────────────────────────────────────────────────────────
-// Mock provider (no API key required)
+// Mock provider
 // ─────────────────────────────────────────────────────────
 async function mockGenerate(text: string, voiceId: string): Promise<AudioData> {
-  // Simulate realistic network + model latency
   await sleep(1500 + Math.random() * 500)
-
   const words    = buildWordTimings(text)
-  const duration = words.length
-    ? words[words.length - 1].endTime + 0.35
-    : 5
-
+  const duration = words.length ? words[words.length - 1].endTime + 0.35 : 5
   return { words, duration, voiceId, text, audioUrl: null }
 }
 
@@ -86,64 +50,57 @@ async function mockGenerate(text: string, voiceId: string): Promise<AudioData> {
 // Docs: https://elevenlabs.io/docs/api-reference/text-to-speech
 // ─────────────────────────────────────────────────────────
 async function elevenlabsGenerate(
-  text: string,
-  voiceId: string,
+  text:     string,
+  voiceId:  string,
+  settings: AppSettings,
 ): Promise<AudioData> {
-  if (!ELEVENLABS_API_KEY) {
-    throw new Error('Missing VITE_ELEVENLABS_API_KEY in .env')
-  }
+  if (!settings.apiKey) throw new Error('ElevenLabs API key is missing. Add it in Settings.')
 
-  const elVoiceId = EL_VOICE_MAP[voiceId] ?? EL_VOICE_MAP['nova']
+  const elVoiceId = settings.voiceIds[voiceId] ?? DEFAULT_VOICE_IDS[voiceId] ?? DEFAULT_VOICE_IDS['nova']
 
   const res = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}/with-timestamps`,
     {
-      method: 'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'xi-api-key':    ELEVENLABS_API_KEY,
-      },
-      body: JSON.stringify({
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'xi-api-key': settings.apiKey },
+      body:    JSON.stringify({
         text,
-        model_id: 'eleven_turbo_v2',
+        model_id:       'eleven_turbo_v2',
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     },
   )
 
-  if (!res.ok) throw new Error(`ElevenLabs error: ${res.status} ${res.statusText}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`ElevenLabs ${res.status}: ${body || res.statusText}`)
+  }
 
   const json = await res.json() as {
     audio_base64: string
     alignment: {
-      characters: string[]
-      character_start_times_seconds: number[]
-      character_end_times_seconds: number[]
+      characters:                      string[]
+      character_start_times_seconds:   number[]
+      character_end_times_seconds:     number[]
     }
   }
 
-  // Convert base64 audio → object URL
   const audioBlob = base64ToBlob(json.audio_base64, 'audio/mpeg')
   const audioUrl  = URL.createObjectURL(audioBlob)
-
-  // Parse character-level alignment into word-level timings
-  const words    = parseElevenLabsAlignment(json.alignment)
-  const duration = words.length
-    ? words[words.length - 1].endTime
-    : 0
+  const words     = parseElevenLabsAlignment(json.alignment)
+  const duration  = words.length ? words[words.length - 1].endTime : 0
 
   return { words, duration, voiceId, text, audioUrl }
 }
 
 function parseElevenLabsAlignment(alignment: {
-  characters: string[]
+  characters:                    string[]
   character_start_times_seconds: number[]
-  character_end_times_seconds: number[]
+  character_end_times_seconds:   number[]
 }) {
   const { characters, character_start_times_seconds, character_end_times_seconds } = alignment
   const words: import('../types').WordTiming[] = []
-  let current = ''
-  let wordStart = 0
+  let current = '', wordStart = 0
 
   for (let i = 0; i < characters.length; i++) {
     const ch = characters[i]
@@ -163,50 +120,44 @@ function parseElevenLabsAlignment(alignment: {
       current += ch
     }
   }
-
   return words
 }
 
 // ─────────────────────────────────────────────────────────
 // OpenAI provider
 // Docs: https://platform.openai.com/docs/api-reference/audio/createSpeech
-// Note: OpenAI TTS does not return word-level timestamps.
-// We fall back to buildWordTimings() for subtitle sync.
+// Note: no word-level timestamps — uses buildWordTimings estimate.
 // ─────────────────────────────────────────────────────────
-async function openaiGenerate(
-  text: string,
-  voiceId: string,
-): Promise<AudioData> {
-  if (!OPENAI_API_KEY) {
-    throw new Error('Missing VITE_OPENAI_API_KEY in .env')
-  }
+const OAI_VOICE_MAP: Record<string, string> = {
+  nova:    'nova',
+  echo:    'echo',
+  shimmer: 'shimmer',
+  onyx:    'onyx',
+  alloy:   'alloy',
+}
 
-  const oaiVoice = OAI_VOICE_MAP[voiceId] ?? 'nova'
+async function openaiGenerate(
+  text:     string,
+  voiceId:  string,
+  settings: AppSettings,
+): Promise<AudioData> {
+  if (!settings.apiKey) throw new Error('OpenAI API key is missing. Add it in Settings.')
 
   const res = await fetch('https://api.openai.com/v1/audio/speech', {
-    method: 'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model:  'tts-1-hd',
-      input:  text,
-      voice:  oaiVoice,
-      response_format: 'mp3',
-    }),
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.apiKey}` },
+    body:    JSON.stringify({ model: 'tts-1-hd', input: text, voice: OAI_VOICE_MAP[voiceId] ?? 'nova', response_format: 'mp3' }),
   })
 
-  if (!res.ok) throw new Error(`OpenAI error: ${res.status} ${res.statusText}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`OpenAI ${res.status}: ${body || res.statusText}`)
+  }
 
   const audioBlob = await res.blob()
   const audioUrl  = URL.createObjectURL(audioBlob)
-
-  // OpenAI doesn't return timestamps — use client-side estimation
-  const words    = buildWordTimings(text)
-  const duration = words.length
-    ? words[words.length - 1].endTime + 0.35
-    : 5
+  const words     = buildWordTimings(text)
+  const duration  = words.length ? words[words.length - 1].endTime + 0.35 : 5
 
   return { words, duration, voiceId, text, audioUrl }
 }

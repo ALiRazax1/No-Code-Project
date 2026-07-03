@@ -1,7 +1,5 @@
 // ─────────────────────────────────────────────────────────
-// hooks/useAudioPlayer.ts
-// Now also exposes audioElRef + isUsingRealAudio so
-// useWaveform can tap into the audio pipeline.
+// hooks/useAudioPlayer.ts — now accepts playbackRate
 // ─────────────────────────────────────────────────────────
 
 import { useState, useRef, useEffect, useCallback } from 'react'
@@ -46,7 +44,10 @@ function fmt(s: number): string {
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
 }
 
-export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerReturn {
+export function useAudioPlayer(
+  audioData:    AudioData | null,
+  playbackRate: number = 1,
+): UseAudioPlayerReturn {
   const [playbackStatus,   setPlaybackStatus]   = useState<PlaybackStatus>('idle')
   const [currentTime,      setCurrentTime]      = useState(0)
   const [currentWordIdx,   setCurrentWordIdx]   = useState(-1)
@@ -60,6 +61,14 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
   const speechFromRef = useRef(0)
   const charMapRef    = useRef<number[]>([])
   const volumeRef     = useRef(0.9)
+  const rateRef       = useRef(playbackRate)
+
+  // Keep rateRef in sync so callbacks always read the latest value
+  useEffect(() => {
+    rateRef.current = playbackRate
+    // Apply to live audio element immediately if one is active
+    if (audioElRef.current) audioElRef.current.playbackRate = playbackRate
+  }, [playbackRate])
 
   const duration = audioData?.duration ?? 0
   const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0
@@ -73,8 +82,11 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
     seekOffsetRef.current = fromSeconds
     wallStartRef.current  = performance.now()
     const tick = () => {
-      const elapsed = seekOffsetRef.current + (performance.now() - wallStartRef.current) / 1000
-      const t       = Math.min(elapsed, audioData.duration)
+      // Scale elapsed time by playback rate so the progress bar
+      // moves in sync with audio when rate ≠ 1
+      const wallElapsed = (performance.now() - wallStartRef.current) / 1000
+      const elapsed     = seekOffsetRef.current + wallElapsed * rateRef.current
+      const t           = Math.min(elapsed, audioData.duration)
       setCurrentTime(t)
       if (audioData.audioUrl) setCurrentWordIdx(getWordIdxAt(audioData.words, t))
       if (t < audioData.duration) rafRef.current = requestAnimationFrame(tick)
@@ -92,13 +104,18 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
     setIsUsingRealAudio(false)
   }
 
-  function startSpeech(words: AudioData['words'], fromIdx: number, audioUrl: string | null) {
+  function startSpeech(
+    words:    AudioData['words'],
+    fromIdx:  number,
+    audioUrl: string | null,
+  ) {
     stopSpeech()
 
     if (audioUrl) {
-      const audio = new Audio(audioUrl)
-      audio.volume      = volumeRef.current
-      audio.currentTime = words[Math.max(0, fromIdx)]?.startTime ?? 0
+      const audio            = new Audio(audioUrl)
+      audio.volume           = volumeRef.current
+      audio.playbackRate     = rateRef.current
+      audio.currentTime      = words[Math.max(0, fromIdx)]?.startTime ?? 0
       audio.onended = () => {
         setCurrentWordIdx(words.length - 1)
         setPlaybackStatus('ended')
@@ -113,14 +130,14 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
 
     if (!window.speechSynthesis) return
 
-    const slicedWords = words.slice(Math.max(0, fromIdx))
-    const text        = slicedWords.map(w => w.word).join(' ')
-    speechFromRef.current = Math.max(0, fromIdx)
-    charMapRef.current    = buildCharMap(words, fromIdx)
+    const slicedWords         = words.slice(Math.max(0, fromIdx))
+    const text                = slicedWords.map(w => w.word).join(' ')
+    speechFromRef.current     = Math.max(0, fromIdx)
+    charMapRef.current        = buildCharMap(words, fromIdx)
 
-    const utt  = new SpeechSynthesisUtterance(text)
-    utt.rate   = 0.92
-    utt.volume = volumeRef.current
+    const utt   = new SpeechSynthesisUtterance(text)
+    utt.rate    = 0.92 * rateRef.current
+    utt.volume  = volumeRef.current
 
     const voices = window.speechSynthesis.getVoices()
     const pick   =
@@ -134,13 +151,16 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
       const starts = charMapRef.current
       let localIdx = 0
       for (let i = 1; i < starts.length; i++) {
-        if (starts[i] <= e.charIndex) localIdx = i
-        else break
+        if (starts[i] <= e.charIndex) localIdx = i; else break
       }
       setCurrentWordIdx(speechFromRef.current + localIdx)
     }
 
-    utt.onend   = () => { setCurrentWordIdx(words.length - 1); setPlaybackStatus('ended'); stopRaf() }
+    utt.onend = () => {
+      setCurrentWordIdx(words.length - 1)
+      setPlaybackStatus('ended')
+      stopRaf()
+    }
 
     const watchdog = setTimeout(() => {
       if (window.speechSynthesis.speaking) return
@@ -209,7 +229,7 @@ export function useAudioPlayer(audioData: AudioData | null): UseAudioPlayerRetur
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioData])
 
-  useEffect(() => () => { stopRaf(); stopSpeech() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { stopRaf(); stopSpeech() }, []) // eslint-disable-line
 
   return {
     playbackStatus, currentTime, currentWordIdx, progress,

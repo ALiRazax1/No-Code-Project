@@ -1,37 +1,77 @@
 // ─────────────────────────────────────────────────────────
-// App.tsx — Main layout and state orchestration
+// App.tsx
 // ─────────────────────────────────────────────────────────
 
-import { useState } from 'react'
-import { Mic, Wand2, Volume2, History } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Mic, Wand2, Volume2, History, Settings } from 'lucide-react'
 
 import type { AppStatus, AudioData, HistoryEntry } from './types'
 import { DEFAULT_PROMPT, VOICE_PROFILES } from './data/mockData'
 import { generateAudio } from './services/ttsService'
-import VoiceSelector  from './components/VoiceSelector'
-import SubtitleCanvas from './components/SubtitleCanvas'
-import AudioPlayer    from './components/AudioPlayer'
-import HistoryPanel   from './components/HistoryPanel'
+import { useSettings } from './hooks/useSettings'
+import VoiceSelector   from './components/VoiceSelector'
+import SubtitleCanvas  from './components/SubtitleCanvas'
+import AudioPlayer     from './components/AudioPlayer'
+import HistoryPanel    from './components/HistoryPanel'
+import SettingsDrawer  from './components/SettingsDrawer'
 
-const CHAR_LIMIT    = 10_000
-const MAX_HISTORY   = 20
+const CHAR_LIMIT  = 10_000
+const MAX_HISTORY = 20
 
+// ── URL hash helpers ──────────────────────────────────────
+function encodeHash(prompt: string, voiceId: string): string {
+  try {
+    return btoa(unescape(encodeURIComponent(JSON.stringify({ p: prompt, v: voiceId }))))
+  } catch { return '' }
+}
+
+function decodeHash(hash: string): { prompt: string; voiceId: string } | null {
+  try {
+    const raw  = hash.startsWith('#') ? hash.slice(1) : hash
+    if (!raw) return null
+    const json = decodeURIComponent(escape(atob(raw)))
+    const { p, v } = JSON.parse(json)
+    if (typeof p === 'string' && typeof v === 'string') return { prompt: p, voiceId: v }
+    return null
+  } catch { return null }
+}
+
+// ─────────────────────────────────────────────────────────
 export default function App() {
-  // ── Form ─────────────────────────────────────────────
-  const [prompt,  setPrompt]  = useState<string>(DEFAULT_PROMPT)
-  const [voiceId, setVoiceId] = useState<string>('nova')
+  const [settings, patchSettings] = useSettings()
+
+  // ── Form — pre-populated from URL hash on mount ───────
+  const [prompt,  setPrompt]  = useState<string>(() => {
+    const decoded = decodeHash(window.location.hash)
+    return decoded?.prompt ?? DEFAULT_PROMPT
+  })
+  const [voiceId, setVoiceId] = useState<string>(() => {
+    const decoded = decodeHash(window.location.hash)
+    return decoded?.voiceId ?? 'nova'
+  })
 
   // ── App state machine ─────────────────────────────────
   const [appStatus, setAppStatus] = useState<AppStatus>('idle')
   const [audioData, setAudioData] = useState<AudioData | null>(null)
   const [errorMsg,  setErrorMsg]  = useState<string | null>(null)
-
-  // ── Word sync bridge ──────────────────────────────────
   const [currentWordIdx, setCurrentWordIdx] = useState(-1)
 
+  // ── Panels ────────────────────────────────────────────
+  const [historyOpen,  setHistoryOpen]  = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
   // ── Session history ───────────────────────────────────
-  const [history,     setHistory]     = useState<HistoryEntry[]>([])
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+
+  // ── If the URL has a valid hash on mount, show a hint ─
+  useEffect(() => {
+    const decoded = decodeHash(window.location.hash)
+    if (decoded) {
+      // Clear the hash visually without a page reload so it's not confusing
+      // but keep the pre-populated form values (already set in useState init)
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }, [])
 
   const charCount = prompt.length
   const charPct   = charCount / CHAR_LIMIT
@@ -51,18 +91,22 @@ export default function App() {
     setErrorMsg(null)
 
     try {
-      const data = await generateAudio(text, voiceId)
+      const data = await generateAudio(text, voiceId, settings)
       setAudioData(data)
       setAppStatus('ready')
 
-      // Prepend to history (cap at MAX_HISTORY)
-      const entry: HistoryEntry = {
+      // Push to history
+      setHistory(prev => [{
         id:            Date.now().toString(),
         audioData:     data,
         generatedAt:   new Date(),
         promptPreview: text.slice(0, 80) + (text.length > 80 ? '…' : ''),
-      }
-      setHistory(prev => [entry, ...prev].slice(0, MAX_HISTORY))
+      }, ...prev].slice(0, MAX_HISTORY))
+
+      // Update URL hash so current state is shareable
+      const hash = encodeHash(text, voiceId)
+      if (hash) window.history.replaceState(null, '', `#${hash}`)
+
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Generation failed. Try again.'
       setErrorMsg(msg)
@@ -70,13 +114,24 @@ export default function App() {
     }
   }
 
-  // Restore a history entry without re-generating
   function handleHistorySelect(entry: HistoryEntry) {
     setAudioData(entry.audioData)
     setPrompt(entry.audioData.text)
     setVoiceId(entry.audioData.voiceId)
     setCurrentWordIdx(-1)
     setAppStatus('ready')
+  }
+
+  // ── Share: write current URL to clipboard ─────────────
+  async function handleShareUrl(): Promise<void> {
+    const hash = encodeHash(prompt.trim(), voiceId)
+    if (hash) window.history.replaceState(null, '', `#${hash}`)
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+    } catch {
+      // Fallback: prompt the user to copy manually
+      window.prompt('Copy this link:', window.location.href)
+    }
   }
 
   const voiceName = VOICE_PROFILES.find(v => v.id === voiceId)?.name ?? 'Nova'
@@ -87,9 +142,9 @@ export default function App() {
 
         {/* ── Header ── */}
         <header className="mb-11 text-center">
+          <div className="mb-6 flex items-center justify-center gap-2">
 
-          {/* Badge row */}
-          <div className="mb-6 flex items-center justify-center gap-3">
+            {/* Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(99,102,241,0.22)] bg-[rgba(99,102,241,0.08)] py-[5px] pl-2 pr-3.5">
               <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]">
                 <Mic size={11} color="white" strokeWidth={2.5} />
@@ -99,23 +154,20 @@ export default function App() {
               </span>
             </div>
 
-            {/* History trigger */}
-            <button
+            {/* History button */}
+            <HeaderIconButton
+              label="Open history"
+              badge={history.length > 0 ? Math.min(history.length, 9) : undefined}
               onClick={() => setHistoryOpen(true)}
-              aria-label="Open history"
-              title="Generation history"
-              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[#16162a] bg-[#0a0a14] text-[#3d3d58] transition-colors hover:border-[rgba(99,102,241,0.3)] hover:text-[#818cf8]"
             >
               <History size={15} />
-              {history.length > 0 && (
-                <span
-                  className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
-                  style={{ background: '#6366f1' }}
-                >
-                  {history.length > 9 ? '9+' : history.length}
-                </span>
-              )}
-            </button>
+            </HeaderIconButton>
+
+            {/* Settings button */}
+            <HeaderIconButton label="Open settings" onClick={() => setSettingsOpen(true)}>
+              <Settings size={15} />
+            </HeaderIconButton>
+
           </div>
 
           <h1 className="gradient-text mb-3 text-[clamp(34px,6vw,50px)] font-extrabold leading-[1.05] tracking-[-0.04em]">
@@ -125,6 +177,22 @@ export default function App() {
             Type anything. Pick a voice. Hear it come alive.
           </p>
         </header>
+
+        {/* ── Provider badge ── */}
+        {settings.provider !== 'mock' && (
+          <div className="mb-3 flex items-center justify-center gap-2">
+            <span
+              className="rounded-full border px-2.5 py-1 text-[11px] font-medium"
+              style={{
+                borderColor: settings.provider === 'elevenlabs' ? 'rgba(52,211,153,0.25)' : 'rgba(251,191,36,0.25)',
+                background:  settings.provider === 'elevenlabs' ? 'rgba(52,211,153,0.08)' : 'rgba(251,191,36,0.08)',
+                color:       settings.provider === 'elevenlabs' ? '#34d399'               : '#fbbf24',
+              }}
+            >
+              {settings.provider === 'elevenlabs' ? '⚡ ElevenLabs' : '✦ OpenAI'} · {settings.playbackRate}× speed
+            </span>
+          </div>
+        )}
 
         {/* ── Input card ── */}
         <section
@@ -136,10 +204,8 @@ export default function App() {
               className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2e2e48]">
               Script
             </label>
-            <span
-              className="font-mono text-[11px] tabular-nums transition-colors duration-300"
-              style={{ color: counterColor }}
-            >
+            <span className="font-mono text-[11px] tabular-nums transition-colors duration-300"
+              style={{ color: counterColor }}>
               {charCount.toLocaleString()} / {CHAR_LIMIT.toLocaleString()}
             </span>
           </div>
@@ -157,7 +223,7 @@ export default function App() {
 
           {charCount > CHAR_LIMIT && (
             <p className="mb-3 text-[12px] text-[#f87171]">
-              Script exceeds {CHAR_LIMIT.toLocaleString()} characters. Trim it to avoid API errors.
+              Script exceeds {CHAR_LIMIT.toLocaleString()} characters.
             </p>
           )}
 
@@ -184,7 +250,7 @@ export default function App() {
         {/* ── Error ── */}
         {appStatus === 'error' && errorMsg && (
           <div className="fade-up rounded-2xl border border-[#2a1818] bg-[#120a0a] px-6 py-5 text-sm text-[#f87171]">
-            <strong className="font-semibold">Generation failed:</strong> {errorMsg}
+            <strong className="font-semibold">Error:</strong> {errorMsg}
           </div>
         )}
 
@@ -194,11 +260,14 @@ export default function App() {
             <SubtitleCanvas
               words={audioData.words}
               currentWordIdx={currentWordIdx}
+              fontSize={settings.subtitleFontSize}
             />
             <AudioPlayer
               audioData={audioData}
               onWordIndexChange={setCurrentWordIdx}
               onRegenerate={handleGenerate}
+              playbackRate={settings.playbackRate}
+              onShareUrl={handleShareUrl}
             />
           </div>
         )}
@@ -216,7 +285,7 @@ export default function App() {
         )}
       </div>
 
-      {/* ── History panel ── */}
+      {/* ── Overlays ── */}
       {historyOpen && (
         <HistoryPanel
           entries={history}
@@ -224,32 +293,61 @@ export default function App() {
           onClose={() => setHistoryOpen(false)}
         />
       )}
+
+      {settingsOpen && (
+        <SettingsDrawer
+          settings={settings}
+          patch={patchSettings}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   )
 }
 
+// ─────────────────────────────────────────────────────────
+// Header icon button (history, settings)
+// ─────────────────────────────────────────────────────────
+function HeaderIconButton({
+  label, badge, onClick, children,
+}: {
+  label: string; badge?: number; onClick: () => void; children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[#16162a] bg-[#0a0a14] text-[#3d3d58] transition-colors hover:border-[rgba(99,102,241,0.3)] hover:text-[#818cf8]"
+    >
+      {children}
+      {badge !== undefined && (
+        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
+          style={{ background: '#6366f1' }}>
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </button>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
+// Generate button
 // ─────────────────────────────────────────────────────────
 function GenerateButton({ status, disabled, onClick }: {
   status: AppStatus; disabled: boolean; onClick: () => void
 }) {
   const isLoading = status === 'loading'
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
+    <button type="button" disabled={disabled} onClick={onClick}
       className="flex h-[44px] shrink-0 items-center gap-2 rounded-[10px] px-5 text-[14px] font-semibold transition-all duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 hover:-translate-y-px"
       style={{
         background: isLoading ? '#1a1a2c' : 'linear-gradient(135deg, #5a5df0, #7c3aed)',
         boxShadow:  isLoading ? 'none'    : '0 4px 16px rgba(99,102,241,0.35)',
         color:      isLoading ? '#6b6b8a' : 'white',
-      }}
-    >
-      {isLoading ? (
-        <><span aria-hidden className="spin h-[14px] w-[14px] rounded-full border-2 border-[#6b6b8a] border-t-[#a5b4fc]" />Generating</>
-      ) : (
-        <><Wand2 size={15} />Generate</>
-      )}
+      }}>
+      {isLoading
+        ? <><span aria-hidden className="spin h-[14px] w-[14px] rounded-full border-2 border-[#6b6b8a] border-t-[#a5b4fc]" />Generating</>
+        : <><Wand2 size={15} />Generate</>}
     </button>
   )
 }

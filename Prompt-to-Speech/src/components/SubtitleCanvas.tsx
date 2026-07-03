@@ -1,17 +1,5 @@
 // ─────────────────────────────────────────────────────────
-// components/SubtitleCanvas.tsx
-//
-// Kinetic subtitle display with two modes:
-//
-//   Word mode    — one word highlighted at a time, karaoke-
-//                  style. Best for short, punchy scripts.
-//
-//   Sentence mode — the full sentence containing the current
-//                  word lights up at once. Better for longer
-//                  prose; easier to read in full.
-//
-// The mode toggle is owned internally — it's a pure display
-// preference with no effect on playback state.
+// components/SubtitleCanvas.tsx — now accepts fontSize prop
 // ─────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState } from 'react'
@@ -20,58 +8,48 @@ import type { SubtitleMode, WordTiming } from '../types'
 interface SubtitleCanvasProps {
   words:          WordTiming[]
   currentWordIdx: number
+  fontSize?:      number   // from settings.subtitleFontSize
 }
 
-// ── Group words into sentence indices ─────────────────────
-// Returns a parallel array: sentenceMap[i] = sentence index of word i.
 function buildSentenceMap(words: WordTiming[]): number[] {
   let idx = 0
   return words.map(w => {
-    const current = idx
+    const cur = idx
     if (/[.!?]$/.test(w.word)) idx++
-    return current
+    return cur
   })
 }
 
-// ── CSS state per word in WORD mode ──────────────────────
-function wordClass(i: number, currentWordIdx: number): string {
-  if (i === currentWordIdx) return 'word-current'
-  if (i <  currentWordIdx) return 'word-past'
+function wordClass(i: number, cur: number): string {
+  if (i === cur) return 'word-current'
+  if (i <  cur)  return 'word-past'
   return 'word-future'
 }
 
-// ── CSS state per word in SENTENCE mode ──────────────────
-function sentenceClass(
-  i:              number,
-  currentWordIdx: number,
-  sentenceMap:    number[],
-): string {
-  const currentSentence = sentenceMap[Math.max(0, currentWordIdx)] ?? -1
-  const wordSentence    = sentenceMap[i] ?? 0
-
-  if (currentWordIdx < 0)                       return 'sentence-future'
-  if (wordSentence === currentSentence)          return 'sentence-current'
-  if (wordSentence <  currentSentence)           return 'sentence-past'
+function sentenceClass(i: number, cur: number, map: number[]): string {
+  const cs = map[Math.max(0, cur)] ?? -1
+  const ws = map[i] ?? 0
+  if (cur < 0)      return 'sentence-future'
+  if (ws === cs)    return 'sentence-current'
+  if (ws <  cs)     return 'sentence-past'
   return 'sentence-future'
 }
 
-// ─────────────────────────────────────────────────────────
-export default function SubtitleCanvas({ words, currentWordIdx }: SubtitleCanvasProps) {
+export default function SubtitleCanvas({
+  words,
+  currentWordIdx,
+  fontSize = 17,
+}: SubtitleCanvasProps) {
   const [mode, setMode] = useState<SubtitleMode>('word')
-
+  const [sentenceMap, setSentenceMap] = useState<number[]>([])
   const wordRefs     = useRef<(HTMLSpanElement | null)[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Pre-compute sentence map only when words change
-  const [sentenceMap, setSentenceMap] = useState<number[]>([])
   useEffect(() => { setSentenceMap(buildSentenceMap(words)) }, [words])
 
-  // ── Auto-scroll current word into view ────────────────
   useEffect(() => {
     if (currentWordIdx < 0) return
-    const el = wordRefs.current[currentWordIdx]
-    if (!el) return
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    wordRefs.current[currentWordIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [currentWordIdx])
 
   if (!words.length) return null
@@ -79,12 +57,11 @@ export default function SubtitleCanvas({ words, currentWordIdx }: SubtitleCanvas
   return (
     <div className="fade-up flex flex-col overflow-hidden rounded-2xl border border-[#18182a] bg-[#080810]">
 
-      {/* ── Mode toggle bar ── */}
+      {/* Mode toggle */}
       <div className="flex items-center justify-between border-b border-[#12122a] px-5 py-2.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#2a2a40]">
           Subtitles
         </span>
-
         <div className="flex items-center gap-[2px] rounded-lg border border-[#16162a] bg-[#060610] p-[3px]">
           {(['word', 'sentence'] as SubtitleMode[]).map(m => (
             <button
@@ -103,28 +80,18 @@ export default function SubtitleCanvas({ words, currentWordIdx }: SubtitleCanvas
         </div>
       </div>
 
-      {/* ── Word stream ── */}
-      <div
-        ref={containerRef}
-        className="relative overflow-hidden"
-        style={{ maxHeight: 200 }}
-      >
-        {/* Radial depth haze */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 z-0"
-          style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 55%)' }}
-        />
-
-        {/* Fade masks at top + bottom */}
+      {/* Word stream */}
+      <div ref={containerRef} className="relative overflow-hidden" style={{ maxHeight: 200 }}>
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-0"
+          style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 55%)' }} />
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-10 h-8"
           style={{ background: 'linear-gradient(to bottom, #080810, transparent)' }} />
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8"
           style={{ background: 'linear-gradient(to top, #080810, transparent)' }} />
 
         <p
-          className="relative z-0 px-7 py-6 leading-[2.15] tracking-[0.005em] select-none"
-          style={{ fontSize: 17 }}
+          className="relative z-0 px-7 py-6 leading-[2.15] tracking-[0.005em] select-none transition-[font-size] duration-300"
+          style={{ fontSize }}
           aria-label="Generated transcript"
           aria-live="polite"
         >
@@ -132,13 +99,8 @@ export default function SubtitleCanvas({ words, currentWordIdx }: SubtitleCanvas
             const cls = mode === 'word'
               ? `word-token ${wordClass(i, currentWordIdx)}`
               : `word-token ${sentenceClass(i, currentWordIdx, sentenceMap)}`
-
             return (
-              <span
-                key={i}
-                ref={el => { wordRefs.current[i] = el }}
-                className={cls}
-              >
+              <span key={i} ref={el => { wordRefs.current[i] = el }} className={cls}>
                 {w.word}{' '}
               </span>
             )
