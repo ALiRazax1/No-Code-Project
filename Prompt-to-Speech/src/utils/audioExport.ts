@@ -129,6 +129,8 @@ export function buildZipBlob(entries: ZipEntry[]): Blob {
   pu16(eocd, 10, entries.length);     pu32(eocd, 12, cdSize)
   pu32(eocd, 16, localOffset);        pu16(eocd, 20, 0)
 
-  return new Blob([...localParts, ...centralParts, new Uint8Array(eocd.buffer)],
-    { type: 'application/zip' })
+  return new Blob(
+  [...localParts, ...centralParts, new Uint8Array(eocd.buffer)] as BlobPart[],
+  { type: 'application/zip' }
+);
 }
