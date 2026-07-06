@@ -25,6 +25,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   voiceIds:         { ...DEFAULT_VOICE_IDS },
   playbackRate:     1,
   subtitleFontSize: 17,
+  language:         'en',
 }
 
 function load(): AppSettings {

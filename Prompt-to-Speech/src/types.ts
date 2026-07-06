@@ -72,3 +72,22 @@ export interface AppSettings {
   /** Subtitle canvas font size in px. */
   subtitleFontSize: number
 }
+
+/** A single word→replacement pair in the pronunciation dictionary. */
+export interface PronunciationEntry {
+  id:          string
+  word:        string   // source text (matched as whole word, case-insensitive)
+  replacement: string   // phonetic or alternate spelling sent to the TTS API
+}
+
+/** Metadata captured for each TTS API call — shown in the API Explorer. */
+export interface APIRequestLog {
+  provider:       string
+  endpoint:       string
+  method:         'POST'
+  headers:        Record<string, string>
+  requestBody:    Record<string, unknown>
+  responseStatus: number
+  durationMs:     number
+  timestamp:      Date
+}

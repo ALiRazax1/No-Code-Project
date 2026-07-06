@@ -47,6 +47,7 @@ function fmt(s: number): string {
 export function useAudioPlayer(
   audioData:    AudioData | null,
   playbackRate: number = 1,
+  language:     string = 'en',
 ): UseAudioPlayerReturn {
   const [playbackStatus,   setPlaybackStatus]   = useState<PlaybackStatus>('idle')
   const [currentTime,      setCurrentTime]      = useState(0)
@@ -138,6 +139,7 @@ export function useAudioPlayer(
     const utt   = new SpeechSynthesisUtterance(text)
     utt.rate    = 0.92 * rateRef.current
     utt.volume  = volumeRef.current
+    utt.lang    = language
 
     const voices = window.speechSynthesis.getVoices()
     const pick   =
