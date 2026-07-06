@@ -4,16 +4,31 @@ A web application that converts text into speech using **Claude AI** through pro
 
 ## Features
 
-* Convert any text into speech
-* Uses the browser's built-in Text-to-Speech voice by default
-* Supports **ElevenLabs API** for higher-quality AI voices
-* Text highlights and glows in sync with the spoken audio
-* Real-time waveform visualizer
-* Word-by-word and sentence highlighting modes
-* Volume control slider
-* Regenerate button for generating fresh speech without creating a new session
-* Generation history panel
-* Download generated subtitles as an `.srt` file
+* Convert text into natural-sounding speech
+* Supports multiple TTS providers:
+
+  * Browser SpeechSynthesis
+  * ElevenLabs
+  * OpenAI Text-to-Speech
+* Multi-language support (15+ languages)
+* Automatic voice and model selection
+* Real-time word-by-word subtitle synchronization
+* Optional sentence highlighting mode
+* Interactive subtitles with auto-scroll and click-to-seek
+* Real-time waveform visualization for both generated audio and browser speech
+* Custom audio player with playback controls
+* Volume, mute, and playback speed controls
+* Audio trimming and background music mixing
+* Download MP3 (supported providers), SRT subtitles, and JSON exports
+* Batch speech generation with ZIP export
+* Session-based generation history
+* Share generations via URL or clipboard
+* Built-in API Explorer with request logging
+* SSML editor and pronunciation dictionary
+* Comprehensive settings panel for providers, API keys, voices, playback, and appearance
+* Responsive design optimized for desktop and mobile
+* Browser SpeechSynthesis fallback when external APIs are unavailable
+* Error recovery with retry support
 * MP3 download support is already integrated
 
 ## How It Works
@@ -89,20 +104,38 @@ When enabled:
 
 ## Current Limitations
 
-* API keys cannot be added from the UI.
-* ElevenLabs API must be configured manually through the `.env` file.
-* The **Download MP3** button is present but remains disabled while using the browser's default voice because no audio file is generated.
-* Once ElevenLabs is configured, the MP3 download button automatically becomes available without requiring any code changes.
-* Generated voices are not currently saved.
+* Browser SpeechSynthesis does not generate downloadable audio files, so **MP3 downloads are only available when using providers that return audio data** (such as ElevenLabs or OpenAI TTS).
+* Generated voices and history are currently stored only for the active session and are not permanently saved.
+* Some advanced features, such as parts of the language settings integration and ZIP export implementation, are still being refined.
+
+---
 
 ## Future Ideas
 
-* Allow users to add and manage API keys from the application
-* Save generated voices and speech history across sessions
-* Improve and expand download options
-* Support multiple speech providers
-* Add voice customization options such as speed, pitch, and emotion
-* Improve overall UI and user experience
+* Add cloud sync with user accounts and persistent generation history.
+* Expand support for additional TTS providers, voice cloning, and advanced voice customization.
+* Enhance editing and export capabilities with richer SSML tools, more export formats, and improved batch processing.
+* Increase personalization through themes, accessibility improvements, and overall UI/UX refinements.
+* Continue optimizing performance, stability, and developer experience as the project evolves.
+
+---
+
+### 📋 Future Ideas
+
+* Allow users to add and manage API keys directly from the UI
+* Persist generation history across browser sessions
+* Save generated voices locally or in the cloud
+* Additional speech providers
+* More export formats
+* Voice cloning support
+* Advanced SSML tools
+* Cloud synchronization
+* User accounts
+* Theme customization
+* Improved accessibility
+* Performance optimizations
+
+---
 
 ## Acknowledgements
 
