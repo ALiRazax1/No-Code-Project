@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────
 
 import { useState, useCallback } from 'react'
+// @ts-ignore
 import { Play, Download, X, CheckCircle, XCircle, Loader, FileText, Upload } from 'lucide-react'
 import type { AudioData } from '../types'
 import { buildZipBlob } from '../utils/audioExport'

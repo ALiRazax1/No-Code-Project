@@ -71,6 +71,8 @@ export interface AppSettings {
   playbackRate:     number
   /** Subtitle canvas font size in px. */
   subtitleFontSize: number
+/** Subtitle canvas font family. */
+  language:        string
 }
 
 /** A single word→replacement pair in the pronunciation dictionary. */
