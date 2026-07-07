@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* CSS Styling configured to perfectly replicate the premium glossy theme (image_75b6e3.png) */
+    body {
+      width: 375px;
+      height: 560px;
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: #03000a;
+      color: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    /* Premium Ultra-Glossy Styles to fix flat rendering issue */
+    .glass-header {
+      padding: 14px 16px;
+      background: rgba(15, 6, 36, 0.45);
+      backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #9333ea, #db2777);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 11px;
+      color: white;
+      box-shadow: 0 0 15px rgba(147, 51, 234, 0.4);
+    }
+    .brand-name {
+      font-weight: 800;
+      color: #ffffff;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .main-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    .main-container::-webkit-scrollbar {
+      display: none;
+    }
+    
+    /* Search Bar Input */
+    .search-box {
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .input-glass {
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(5, 2, 12, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: white;
+      border-radius: 12px;
+      padding: 10px 12px 10px 34px;
+      font-size: 12px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .input-glass:focus {
+      border-color: rgba(192, 132, 252, 0.6);
+      box-shadow: 0 0 10px rgba(192, 132, 252, 0.2);
+    }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.4);
+    }
+    
+    /* Categories Bar horizontal */
+    .categories-bar {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      margin-bottom: 14px;
+      padding-bottom: 4px;
+    }
+    .categories-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .cat-badge {
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 9999px;
+      white-space: nowrap;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      transition: all 0.2s;
+    }
+    .cat-badge.active {
+      background: #a855f7;
+      color: white;
+      border-color: #c084fc;
+      box-shadow: 0 0 15px rgba(147, 51, 234, 0.4);
+    }
+    
+    /* Prompt Cards Layout matching Image 1 perfectly */
+    .prompt-card {
+      background: rgba(15, 6, 36, 0.4);
+      border: 1px solid rgba(147, 51, 234, 0.35);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .prompt-card:hover {
+      border-color: rgba(192, 132, 252, 0.7);
+      background: rgba(147, 51, 234, 0.06);
+    }
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-right: 32px;
+    }
+    .card-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: #ffffff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .card-cat-label {
+      font-size: 9px;
+      font-weight: 800;
+      color: #c084fc;
+      background: rgba(147, 51, 234, 0.2);
+      padding: 2px 8px;
+      border-radius: 9999px;
+      white-space: nowrap;
+      border: 1px solid rgba(147, 51, 234, 0.3);
+    }
+    .card-body {
+      font-size: 11px;
+      color: #94a3b8;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: monospace;
+      margin-bottom: 8px;
+    }
+    .card-divider {
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+      margin: 8px 0;
+    }
+    .card-footer {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.4);
+    }
+    .quick-copy-btn {
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      color: #cbd5e1;
+    }
+    .quick-copy-btn:hover {
+      background: #10b981;
+      border-color: #34d399;
+      color: white;
+    }
+    
+    /* Footer design */
+    .actions-bar {
+      padding: 12px 14px;
+      background: rgba(15, 6, 36, 0.6);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    button.primary-gradient {
+      background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 9999px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 12px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button.primary-gradient:hover {
+      opacity: 0.95;
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+    }
+    .footer-square-btn {
+      width: 36px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #94a3b8;
+      transition: all 0.2s;
+    }
+    .footer-square-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: white;
+    }
+    
+    /* Screen View Overlays */
+    .form-panel {
+      display: none;
+      padding: 14px;
+      gap: 12px;
+      flex-direction: column;
+    }
+    .form-panel.active {
+      display: flex;
+    }
+    .form-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    select.input-glass {
+      padding: 10px;
+      width: 100%;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(4, 1, 13, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 50;
+      flex-direction: column;
+      justify-content: flex-end;
+      transition: all 0.3s ease;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-content {
+      background: rgba(15, 6, 36, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px 24px 0 0;
+      padding: 18px;
+      max-height: 85%;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #d1d5db;
+      margin: 12px 0;
+      white-space: pre-wrap;
+      font-family: 'Inter', sans-serif;
+    }
+    .modal-body::-webkit-scrollbar {
+      display: none;
+    }
+    .modal-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      margin-top: 4px;
+    }
+    
+    /* Styled delete elements inside custom dynamic list */
+    .cat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 10px 14px;
+      border-radius: 12px;
+      margin-bottom: 6px;
+    }
+    .cat-row-title {
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .cat-row-delete {
+      color: #ef4444;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .cat-row-delete:hover {
+      color: #f87171;
+    }
+  </style>
+</head>
+<body>
+  
+  <!-- Main Home View -->
+  <div id="home-view" style="display:flex; flex-direction:column; height:100%;">
+    <div class="glass-header">
+      <div class="brand-container">
+        <div class="brand-icon">PV</div>
+        <div class="brand-name">PROMPTVAULT</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span id="api-status-badge" style="font-size:8px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.15); padding:2px 8px; border-radius:99px; letter-spacing: 0.05em;">MANUAL MODE</span>
+        <button id="settings-btn" class="footer-square-btn"> 
+  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>
+</button>
+
+      </div>
+    </div>
+    
+    <div class="main-container">
+      <div class="search-box">
+        <svg class="search-icon" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <input type="text" id="search-input" placeholder="Search prompts..." class="input-glass">
+      </div>
+      
+      <div class="categories-bar" id="cat-tabs-bar">
+        <!-- Dynamic Tabs inside Popup -->
+      </div>
+      
+      <div id="prompts-list">
+        <!-- Saved prompts listing -->
+      </div>
+    </div>
+    
+    <div class="actions-bar">
+      <button id="add-prompt-btn" class="primary-gradient">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+        Add Prompt
+      </button>
+      <div style="display:flex; gap:6px;">
+        <button id="manage-cats-btn" class="footer-square-btn" title="Categories">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+        </button>
+        <button id="export-all-btn" class="footer-square-btn" title="Export Consolidated Markdown">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dynamic Categories Creator Screen -->
+  <div id="cats-view" class="form-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(255,255,255,0.1); padding-bottom:8px; margin-bottom:10px;">
+      <h3 style="font-size:12px; font-weight:800; text-transform:uppercase; color:#c084fc; margin:0;">Dynamic Categories</h3>
+      <button id="cats-done-btn" class="footer-square-btn" style="width:24px; height:24px; border-radius:6px; font-size:10px;">&times;</button>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:12px;">
+      <input type="text" id="new-cat-input" placeholder="Add custom category..." class="input-glass" style="padding-left:12px;">
+      <button id="new-cat-add-btn" class="primary-gradient" style="border-radius:12px; padding:8px 16px;">Add</button>
+    </div>
+    <div id="cats-list-mgmt" style="display:flex; flex-direction:column; gap:6px; max-height:280px; overflow-y:auto; padding-right:2px;" class="no-scrollbar">
+      <!-- Dynamic list elements inside Chrome popup -->
+    </div>
+  </div>
+
+  <!-- Settings API Configuration View -->
+  <div id="settings-view" class="form-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(255,255,255,0.1); padding-bottom:8px; margin-bottom:10px;">
+      <h3 style="font-size:12px; font-weight:800; text-transform:uppercase; color:#c084fc; margin:0;">Gemini API Settings</h3>
+      <button id="settings-back-btn" class="footer-square-btn" style="width:24px; height:24px; border-radius:6px; font-size:10px;">&times;</button>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div class="form-label">Gemini API Key</div>
+      <input type="password" id="api-key-input" placeholder="Paste your API key here..." class="input-glass" style="padding-left:12px;">
+      <p style="font-size:10px; color:#64748b; line-height:1.4; margin:4px 0 0 0;">Saving a valid API key enables automatic prompt title generation. If empty, the manual title field becomes required.</p>
+    </div>
+    <button id="api-key-save-btn" class="primary-gradient" style="margin-top:14px; border-radius:12px; justify-content:center;">Save Configuration</button>
+  </div>
+
+  <!-- Add Prompt Screen -->
+  <div id="add-view" class="form-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(255,255,255,0.1); padding-bottom:8px; margin-bottom:10px;">
+      <h3 style="font-size:12px; font-weight:800; text-transform:uppercase; color:#c084fc; margin:0;">Save Prompt Block</h3>
+      <button id="add-cancel-btn" class="footer-square-btn" style="width:24px; height:24px; border-radius:6px; font-size:10px;">&times;</button>
+    </div>
+    
+    <div>
+      <div class="form-label">Prompt Body</div>
+      <textarea id="prompt-body-input" rows="6" class="input-glass" placeholder="Paste markdown prompt..." style="width:100%; font-family:monospace; resize:none; font-size:11px; padding:12px; box-sizing:border-box;"></textarea>
+    </div>
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px;">
+      <div>
+        <div class="form-label">Category</div>
+        <select id="prompt-cat-select" class="input-glass" style="padding-left:8px; height:38px;">
+          <!-- Dynamic categories select list -->
+        </select>
+      </div>
+      <div>
+        <div class="form-label" id="title-field-label">Title</div>
+        <input type="text" id="prompt-title-input" placeholder="Manual title..." class="input-glass" style="padding-left:12px; height:38px;">
+        <span id="title-hint" style="font-size:8px; color:#fbbf24; display:block; margin-top:4px;">Title required (No API Key set)</span>
+      </div>
+    </div>
+    
+    <div id="ai-generating-indicator" style="display:none; font-size:10px; color:#c084fc; font-weight:600; text-align:center; margin-top:6px; animation: pulse 2s infinite;">Analyzing prompt with Gemini AI...</div>
+    
+    <button id="prompt-save-btn" class="primary-gradient" style="border-radius:12px; justify-content:center; margin-top:8px;">Save Prompt Template</button>
+  </div>
+
+  <!-- Glassmorphic Overlay Modal for Reading Prompts inside Unpacked Extension -->
+  <div id="prompt-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:start; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;">
+        <div>
+          <span id="modal-cat-badge" style="font-size:8px; font-weight:800; color:#c084fc; background:rgba(147, 51, 234, 0.2); padding:2px 8px; border-radius:9999px; border:1px solid rgba(147,51,234,0.3);">CAT</span>
+          <div id="modal-prompt-title" class="modal-title">Prompt Title</div>
+        </div>
+        <button id="modal-close-btn" class="footer-square-btn" style="width:24px; height:24px; border-radius:6px; font-size:14px; font-weight:bold;">&times;</button>
+      </div>
+      <div id="modal-prompt-body" class="modal-body">
+        <!-- Rendered Prompt Body goes here -->
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="modal-copy-btn" class="primary-gradient" style="flex:1; border-radius:12px; background:linear-gradient(135deg, #10b981, #059669); justify-content:center;">Copy Prompt Markdown</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

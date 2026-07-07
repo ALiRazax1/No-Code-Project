@@ -1,0 +1,16 @@
+{
+"manifest_version": 3,
+"name": "PromptVault: Premium Markdown Organizer",
+"version": "1.2",
+"description": "Organize, search, & auto-name useful prompts in dynamic, elegant markdown containers.",
+"permissions": [
+"storage",
+"contextMenus"
+],
+"background": {
+"service_worker": "background.js"
+},
+"action": {
+"default_popup": "popup.html"
+}
+}
