@@ -133,6 +133,7 @@ export function processAudioBuffer(
 
   // Write back into a new AudioBuffer
   const out = new AudioBuffer({ numberOfChannels: numCh, length: numSamp, sampleRate: sr })
+  // @ts-ignore
   for (let ch = 0; ch < numCh; ch++) out.copyToChannel(channels[ch], ch)
   return out
 }
