@@ -57,7 +57,7 @@ function CopyableBlock({ content }: { content: string }) {
       </pre>
       <button
         onClick={handleCopy}
-        className="absolute right-2 top-2 flex items-center gap-1 rounded-md border border-[#1a1a2c] bg-[#0c0c18] px-1.5 py-1 text-[10px] text-[#3d3d58] transition-colors hover:text-[#9ca3af]"
+        className="absolute right-2 top-2 flex items-center gap-1 rounded-md border border-[#1a1a2c] bg-[#0c0c18] px-1.5 py-1 text-[10px] text-[#7878b0] transition-colors hover:text-[#9ca3af]"
       >
         {copied ? <Check size={10} className="text-[#34d399]" /> : <Copy size={10} />}
         {copied ? 'Copied' : 'Copy'}
@@ -97,7 +97,7 @@ export default function APIExplorer({ log, onClose }: APIExplorerProps) {
           </div>
           <button
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#3d3d58] transition-colors hover:bg-[#16162a] hover:text-[#9ca3af]"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#7878b0] transition-colors hover:bg-[#16162a] hover:text-[#9ca3af]"
           >
             <X size={16} />
           </button>
@@ -108,10 +108,10 @@ export default function APIExplorer({ log, onClose }: APIExplorerProps) {
           {!log ? (
             <div className="flex flex-col items-center gap-3 py-16 text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#14142a]">
-                <Terminal size={20} color="#1e1e32" />
+                <Terminal size={20} color="#8888b8" />
               </div>
-              <p className="text-[13px] text-[#2a2a40]">No requests yet</p>
-              <p className="text-[12px] text-[#1a1a28]">
+              <p className="text-[13px] text-[#9090be]">No requests yet</p>
+              <p className="text-[12px] text-[#8080b8]">
                 Generate audio to see the API call here.
               </p>
             </div>
@@ -127,7 +127,7 @@ export default function APIExplorer({ log, onClose }: APIExplorerProps) {
                   {log.provider}
                 </span>
                 <StatusBadge code={log.responseStatus} />
-                <span className="flex items-center gap-1 text-[11px] text-[#2e2e48]">
+                <span className="flex items-center gap-1 text-[11px] text-[#9494c0]">
                   <Clock size={11} />
                   {log.durationMs}ms
                 </span>
@@ -145,8 +145,8 @@ export default function APIExplorer({ log, onClose }: APIExplorerProps) {
                 <div className="overflow-hidden rounded-xl border border-[#0e0e1e] bg-[#06060f]">
                   {Object.entries(log.headers).map(([k, v]) => (
                     <div key={k} className="flex items-start gap-3 border-b border-[#0a0a18] px-3 py-2 last:border-0">
-                      <span className="w-[130px] shrink-0 text-[11px] text-[#4a4a68]">{k}</span>
-                      <span className="break-all font-mono text-[11px] text-[#6b6b80]">
+                      <span className="w-[130px] shrink-0 text-[11px] text-[#8888b8]">{k}</span>
+                      <span className="break-all font-mono text-[11px] text-[#9898b8]">
                         {k.toLowerCase().includes('key') || k.toLowerCase().includes('auth')
                           ? maskKey(v)
                           : v}
@@ -163,7 +163,7 @@ export default function APIExplorer({ log, onClose }: APIExplorerProps) {
               </div>
 
               {/* Timestamp */}
-              <p className="text-[11px] text-[#1e1e30]">
+              <p className="text-[11px] text-[#8888b8]">
                 {log.timestamp.toLocaleTimeString()} · {log.timestamp.toLocaleDateString()}
               </p>
             </div>
@@ -183,7 +183,7 @@ export default function APIExplorer({ log, onClose }: APIExplorerProps) {
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#2a2a42]">
+    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9090be]">
       {children}
     </p>
   )

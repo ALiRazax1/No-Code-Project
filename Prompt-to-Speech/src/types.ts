@@ -71,8 +71,8 @@ export interface AppSettings {
   playbackRate:     number
   /** Subtitle canvas font size in px. */
   subtitleFontSize: number
-/** Subtitle canvas font family. */
-  language:        string
+  /** BCP-47 language code used for TTS and SpeechSynthesis. */
+  language:         string
 }
 
 /** A single word→replacement pair in the pronunciation dictionary. */

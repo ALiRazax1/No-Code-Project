@@ -10,6 +10,7 @@ export async function exportTrimmedClip(
   startSec:  number,
   endSec:    number,
   filename?: string,
+  processing: ProcessingOptions = { normalise: true, noiseGate: 0.008 },
 ): Promise<void> {
   const response    = await fetch(audioUrl)
   const arrayBuffer = await response.arrayBuffer()
@@ -29,7 +30,8 @@ export async function exportTrimmedClip(
     )
   }
 
-  const wavBlob = encodeWav(trimmed)
+  const processed = processAudioBuffer(trimmed, processing)
+  const wavBlob   = encodeWav(processed)
   const url     = URL.createObjectURL(wavBlob)
   Object.assign(document.createElement('a'), {
     href: url, download: filename ?? `pts-clip-${Date.now()}.wav`,
@@ -64,6 +66,75 @@ export function encodeWav(buffer: AudioBuffer): Blob {
     }
   }
   return new Blob([ab], { type: 'audio/wav' })
+}
+
+// ── Audio processing: noise gate + peak normalisation ────
+
+export interface ProcessingOptions {
+  /**
+   * Peak-normalise to 0.95 full-scale after trimming.
+   * Prevents clipping on loud clips and brings quiet recordings to full volume.
+   * Default: true.
+   */
+  normalise?: boolean
+  /**
+   * Noise-gate threshold (0–1). Samples whose absolute amplitude is below this
+   * value are zeroed out, removing low-level hiss between words.
+   * Pass 0 or false to disable.  Default: 0.008 (~−42 dBFS).
+   */
+  noiseGate?: number | false
+}
+
+/**
+ * Apply noise gate and/or peak normalisation to an AudioBuffer.
+ * Returns a new buffer — the original is never mutated.
+ */
+export function processAudioBuffer(
+  buffer:  AudioBuffer,
+  options: ProcessingOptions = {},
+): AudioBuffer {
+  const { normalise = true, noiseGate = 0.008 } = options
+  const numCh    = buffer.numberOfChannels
+  const numSamp  = buffer.length
+  const sr       = buffer.sampleRate
+
+  // Copy all channel data into mutable Float32Arrays
+  const channels: Float32Array[] = Array.from(
+    { length: numCh },
+    (_, ch) => new Float32Array(buffer.getChannelData(ch)),
+  )
+
+  // ── 1. Noise gate ────────────────────────────────────
+  const threshold = noiseGate === false ? 0 : (noiseGate ?? 0)
+  if (threshold > 0) {
+    for (const ch of channels) {
+      for (let i = 0; i < ch.length; i++) {
+        if (Math.abs(ch[i]) < threshold) ch[i] = 0
+      }
+    }
+  }
+
+  // ── 2. Peak normalisation ────────────────────────────
+  if (normalise) {
+    let peak = 0
+    for (const ch of channels) {
+      for (let i = 0; i < ch.length; i++) {
+        const abs = Math.abs(ch[i])
+        if (abs > peak) peak = abs
+      }
+    }
+    if (peak > 0 && Math.abs(peak - 0.95) > 0.001) {
+      const gain = 0.95 / peak
+      for (const ch of channels) {
+        for (let i = 0; i < ch.length; i++) ch[i] *= gain
+      }
+    }
+  }
+
+  // Write back into a new AudioBuffer
+  const out = new AudioBuffer({ numberOfChannels: numCh, length: numSamp, sampleRate: sr })
+  for (let ch = 0; ch < numCh; ch++) out.copyToChannel(channels[ch], ch)
+  return out
 }
 
 // ── CRC-32 (required by ZIP format) ─────────────────────
@@ -111,7 +182,7 @@ export function buildZipBlob(entries: ZipEntry[]): Blob {
     const cd = new DataView(new ArrayBuffer(46 + name.length))
     pu32(cd, 0,  0x02014b50); pu16(cd, 4,  20); pu16(cd, 6,  20)
     pu16(cd, 8,  0);           pu16(cd, 10, 0);  pu16(cd, 12, 0)
-    pu16(cd, 14, 0);           pu16(cd, 16, 0);  pu32(cd, 16, crc)
+    pu16(cd, 14, 0);           pu32(cd, 16, crc)
     pu32(cd, 20, size);        pu32(cd, 24, size)
     pu16(cd, 28, name.length); pu16(cd, 30, 0); pu16(cd, 32, 0)
     pu16(cd, 34, 0);           pu16(cd, 36, 0); pu32(cd, 38, 0)

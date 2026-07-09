@@ -74,6 +74,7 @@ export default function AudioPlayer({
   const [trimEnd,        setTrimEnd]        = useState(0)
   const [trimExporting,  setTrimExporting]  = useState(false)
   const [trimError,      setTrimError]      = useState('')
+  const [hoverFrac,      setHoverFrac]      = useState<number | null>(null)
 
   // Stable ref so the seek effect never needs handleSeek as a dependency.
   const handleSeekRef = useRef(handleSeek)
@@ -200,27 +201,73 @@ export default function AudioPlayer({
         {formatTime(currentTime)} / {formatTime(duration)}
       </div>
 
-      {/* ── Waveform ── */}
-      <div aria-hidden className="mb-3.5 flex items-end justify-between gap-[2px]" style={{ height: 32 }}>
+      {/* ── Waveform (click or drag to seek) ── */}
+      <div
+        role="slider"
+        aria-label="Audio waveform — click to seek"
+        aria-valuemin={0}
+        aria-valuemax={duration}
+        aria-valuenow={Math.round(currentTime)}
+        className="relative mb-3.5 flex cursor-pointer items-end justify-between gap-[2px]"
+        style={{ height: 32 }}
+        onClick={e => {
+          const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+          const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+          handleSeek(frac * duration)
+        }}
+        onMouseMove={e => {
+          const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+          setHoverFrac(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)))
+        }}
+        onMouseLeave={() => setHoverFrac(null)}
+      >
+        {/* Hover time tooltip */}
+        {hoverFrac !== null && duration > 0 && (
+          <div
+            className="pointer-events-none absolute bottom-[calc(100%+5px)] -translate-x-1/2 whitespace-nowrap rounded px-1.5 py-0.5 font-mono text-[10px]"
+            style={{
+              left:      `${hoverFrac * 100}%`,
+              background: 'rgba(8,8,20,0.92)',
+              border:    '1px solid #1e1e30',
+              color:     '#a5b4fc',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.45)',
+            }}
+          >
+            {formatTime(hoverFrac * duration)}
+          </div>
+        )}
+
         {bars.slice(0, NUM_BARS).map((v, i) => {
-          const frac      = i / (NUM_BARS - 1)
-          const inTrim    = trimMode && frac >= trimStartFrac && frac <= trimEndFrac
-          const barT      = frac * duration
-          const isCurrent = Math.abs(barT - currentTime) < duration / NUM_BARS
-          const isPast    = barT < currentTime
+          const frac       = i / (NUM_BARS - 1)
+          const inTrim     = trimMode && frac >= trimStartFrac && frac <= trimEndFrac
+          const barT       = frac * duration
+          const isCurrent  = Math.abs(barT - currentTime) < duration / NUM_BARS
+          const isPast     = barT < currentTime
+          const isHovered  = hoverFrac !== null && Math.abs(frac - hoverFrac) < 1.5 / NUM_BARS
+          const isPreSeek  = hoverFrac !== null && frac <= hoverFrac
+
           const bg =
             inTrim && isCurrent ? '#8b5cf6' :
             inTrim && isPast    ? '#3d3d68' :
             inTrim              ? '#2a2a48' :
+            isHovered           ? '#a5b4fc' :
             isCurrent           ? '#8b5cf6' :
             isPast              ? '#3d3d68' : '#16162a'
+
+          const opacity =
+            isHovered  ? 1 :
+            isPreSeek  ? 0.65 :
+            inTrim     ? 1 :
+            isCurrent  ? 1 :
+            isPast     ? 0.9 : 0.4
+
           return (
             <div key={i} className="flex-1 rounded-[1.5px]"
               style={{
                 height:     barPx(v),
                 background: bg,
-                opacity:    inTrim ? 1 : (isCurrent ? 1 : isPast ? 0.9 : 0.4),
-                transition: 'height 0.05s ease, background 0.1s',
+                opacity,
+                transition: 'height 0.05s ease, background 0.08s, opacity 0.08s',
               }} />
           )
         })}

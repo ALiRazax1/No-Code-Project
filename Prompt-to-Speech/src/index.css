@@ -2,76 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Inter variable font feature settings ── */
+/* ── Design token CSS variables ──────────────────────────
+   All theme-aware values live here. Components that still
+   use hardcoded Tailwind arbitrary values (bg-[#0a0a14] etc.)
+   are dark-only until they migrate to var() references.
+   ─────────────────────────────────────────────────────── */
+
 :root {
+  /* ── Dark theme (default) ── */
+  --pts-bg-page:           #04040a;
+  --pts-bg-card:           #0a0a14;
+  --pts-bg-surface:        #06060f;
+  --pts-border:            #1a1a2c;
+  --pts-border-dim:        #14142a;
+
+  --pts-text-1:            #e8e8f8;
+  --pts-text-2:            #9898b8;
+  --pts-text-3:            #7070a8;
+  --pts-text-4:            #9494c0;
+  --pts-text-5:            #8888b8;
+
+  --pts-accent:            #6366f1;
+  --pts-accent-hi:         #818cf8;
+  --pts-accent-2:          #7c3aed;
+
+  --pts-word-future:       #585890;
+  --pts-word-past:       #7070a8;
+  --pts-word-current:      #f2f2ff;
+  --pts-word-glow-1:       rgba(139, 92, 246, 0.9);
+  --pts-word-glow-2:       rgba(99, 102, 241, 0.45);
+
+  --pts-scrollbar:         #1a1a2c;
+  --pts-scrollbar-hover:   #242438;
+  --pts-seek-empty:        #18182e;
+
+  /* Typography */
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   font-variation-settings: 'opsz' auto;
 }
 
-/* ── Base resets ── */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+/* ── Base resets ────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
-html {
-  overflow-x: hidden;
-}
+html { overflow-x: hidden; }
 
-html, body, #root {
-  height: 100%;
-}
+html, body, #root { height: 100%; }
 
 body {
-  background-color: #04040a;
-  color: #e8e8f8;
-  -webkit-font-smoothing: antialiased;
+  background-color: var(--pts-bg-page);
+  color:            var(--pts-text-1);
+  -webkit-font-smoothing:  antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* ── Custom scrollbar ── */
 ::-webkit-scrollbar       { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #1a1a2c; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #242438; }
+::-webkit-scrollbar-thumb       { background: var(--pts-scrollbar);       border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--pts-scrollbar-hover); }
 
 /* ── Seek bar (cross-browser custom range input) ── */
 .seek-bar {
   -webkit-appearance: none;
   appearance: none;
-  width: 100%;
-  height: 4px;
+  width:        100%;
+  height:       4px;
   border-radius: 2px;
   outline: none;
   cursor: pointer;
-  /* background is set inline via JS for the fill progress */
 }
 
 .seek-bar::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 14px; height: 14px;
   border-radius: 50%;
-  background: #6366f1;
+  background: var(--pts-accent);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   box-shadow: 0 0 6px rgba(99, 102, 241, 0.5);
 }
-
 .seek-bar::-webkit-slider-thumb:hover {
   transform: scale(1.45);
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
 }
-
 .seek-bar::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 14px; height: 14px;
   border-radius: 50%;
-  background: #6366f1;
-  border: none;
-  cursor: pointer;
+  background: var(--pts-accent);
+  border: none; cursor: pointer;
   box-shadow: 0 0 6px rgba(99, 102, 241, 0.5);
 }
-
 .seek-bar:focus::-webkit-slider-thumb {
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3);
 }
@@ -82,23 +102,34 @@ textarea {
   min-height: 120px;
 }
 
-/* ── Kinetic word token ── */
+/* ── Kinetic word tokens ── */
 .word-token {
   display: inline;
   transition:
-    color 0.18s ease,
+    color       0.18s ease,
     text-shadow 0.18s ease,
     font-weight 0.18s ease;
 }
 
-.word-token.word-future  { color: #1e1e30; }
-.word-token.word-past    { color: #44445a; }
+.word-token.word-future  { color: var(--pts-word-future); }
+.word-token.word-past    { color: var(--pts-word-past); }
 .word-token.word-current {
-  color: #f2f2ff;
+  color:       var(--pts-word-current);
   font-weight: 600;
   text-shadow:
-    0 0 14px rgba(139, 92, 246, 0.9),
-    0 0 28px rgba(99, 102, 241, 0.45);
+    0 0 14px var(--pts-word-glow-1),
+    0 0 28px var(--pts-word-glow-2);
+}
+
+/* ── Sentence mode tokens ── */
+.word-token.sentence-future  { color: var(--pts-word-future); }
+.word-token.sentence-past    { color: var(--pts-word-past); }
+.word-token.sentence-current {
+  color:       var(--pts-word-current);
+  font-weight: 500;
+  text-shadow:
+    0 0 20px var(--pts-word-glow-1),
+    0 0 40px var(--pts-word-glow-2);
 }
 
 /* ── Gradient text utility ── */
@@ -109,43 +140,25 @@ textarea {
   background-clip: text;
 }
 
-/* ── Indigo top-line accent used on cards ── */
+/* ── Indigo top-line accent on cards ── */
 .card-top-shine::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 15%;
-  right: 15%;
+  top: 0; left: 15%; right: 15%;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.35), transparent);
 }
 
-/* ── Spinner animation ── */
-@keyframes pts-spin {
-  to { transform: rotate(360deg); }
-}
-.spin {
-  animation: pts-spin 0.75s linear infinite;
-}
+/* ── Spinner ── */
+@keyframes pts-spin { to { transform: rotate(360deg); } }
+.spin { animation: pts-spin 0.75s linear infinite; }
 
+/* ── Fade-up entrance ── */
 @keyframes pts-fade-up {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0);     }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.fade-up {
-  animation: pts-fade-up 0.35s ease forwards;
-}
-
-/* ── Sentence mode tokens ── */
-.word-token.sentence-future  { color: #1e1e30; }
-.word-token.sentence-past    { color: #3a3a52; }
-.word-token.sentence-current {
-  color: #e8e8ff;
-  font-weight: 500;
-  text-shadow:
-    0 0 20px rgba(139, 92, 246, 0.55),
-    0 0 40px rgba(99, 102, 241, 0.20);
-}
+.fade-up { animation: pts-fade-up 0.35s ease forwards; }
 
 /* ── Hero waveform bars ── */
 @keyframes hero-wave {
@@ -162,13 +175,13 @@ textarea {
 /* ── Feature pill stagger ── */
 @keyframes pill-in {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0);     }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Gate card entrance ── */
 @keyframes gate-in {
   from { opacity: 0; transform: translateY(24px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)     scale(1);    }
+  to   { opacity: 1; transform: translateY(0)     scale(1);   }
 }
 
 /* ── Gradient title shimmer ── */
@@ -176,14 +189,11 @@ textarea {
   0%   { background-position: 0%   center; }
   100% { background-position: 200% center; }
 }
+
 .hero-title {
   background: linear-gradient(
     110deg,
-    #f0f0ff 0%,
-    #a5b4fc 30%,
-    #7c3aed 50%,
-    #a5b4fc 70%,
-    #f0f0ff 100%
+    #f0f0ff 0%, #a5b4fc 30%, #7c3aed 50%, #a5b4fc 70%, #f0f0ff 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -191,3 +201,4 @@ textarea {
   background-clip: text;
   animation: title-shimmer 5s linear infinite;
 }
+
