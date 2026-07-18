@@ -1,0 +1,47 @@
+{
+  "openai": {
+    "name": "OpenAI",
+    "signup_url": "https://platform.openai.com/signup",
+    "key_page_url": "https://platform.openai.com/api-keys",
+    "billing_url": "https://platform.openai.com/settings/organization/billing",
+    "key_format_regex": "^sk-[A-Za-z0-9-_]{20,}$",
+    "test_endpoint": "https://api.openai.com/v1/models",
+    "supported_intents": ["chat", "image", "embeddings"]
+  },
+  "anthropic": {
+    "name": "Anthropic",
+    "signup_url": "https://console.anthropic.com/",
+    "key_page_url": "https://console.anthropic.com/settings/keys",
+    "billing_url": "https://console.anthropic.com/settings/billing",
+    "key_format_regex": "^sk-ant-[A-Za-z0-9-]{20,}$",
+    "test_endpoint": "https://api.anthropic.com/v1/models",
+    "supported_intents": ["chat"]
+  },
+  "google_gemini": {
+    "name": "Google Gemini",
+    "signup_url": "https://aistudio.google.com/",
+    "key_page_url": "https://aistudio.google.com/app/apikey",
+    "billing_url": "https://aistudio.google.com/app/apikey",
+    "key_format_regex": "^AIza[A-Za-z0-9_-]{20,}$",
+    "test_endpoint": "https://generativelanguage.googleapis.com/v1/models",
+    "supported_intents": ["chat", "image"]
+  },
+  "elevenlabs": {
+    "name": "ElevenLabs",
+    "signup_url": "https://elevenlabs.io/sign-up",
+    "key_page_url": "https://elevenlabs.io/app/settings/api-keys",
+    "billing_url": "https://elevenlabs.io/app/subscription",
+    "key_format_regex": "^[A-Za-z0-9]{32,}$",
+    "test_endpoint": "https://api.elevenlabs.io/v1/models",
+    "supported_intents": ["speech"]
+  },
+  "openrouter": {
+    "name": "OpenRouter",
+    "signup_url": "https://openrouter.ai/",
+    "key_page_url": "https://openrouter.ai/keys",
+    "billing_url": "https://openrouter.ai/credits",
+    "key_format_regex": "^sk-or-[A-Za-z0-9-]{20,}$",
+    "test_endpoint": "https://openrouter.ai/api/v1/models",
+    "supported_intents": ["chat", "image", "embeddings"]
+  }
+}

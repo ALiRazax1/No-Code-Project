@@ -1,0 +1,18 @@
+{
+  "name": "keybridge",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=packages/security && npm run build --workspace=apps/web",
+    "test": "npm run test --workspaces --if-present",
+    "test:security": "npm run test --workspace=packages/security",
+    "test:validation": "npm run test --workspace=packages/validation",
+    "test:web": "npm run test --workspace=apps/web"
+  },
+  "license": "MIT"
+}
