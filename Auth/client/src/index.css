@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap");
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-mc-bg text-mc-text antialiased;
+}
