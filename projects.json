@@ -1,5 +1,6 @@
 {
   "Prompt-to-Speech": "https://prompt-to-speech-no-code-flame.vercel.app/",
   "Chatbot-UI Gemini": "https://chatbot-ui-gemini-kappa.vercel.app/",
-  "keybridge": "https://keybridge-phi.vercel.app/"
+  "keybridge": "https://keybridge-phi.vercel.app/",
+  "CRM":"https://crm-xyz.vercel.app/"
 }
