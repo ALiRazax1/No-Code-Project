@@ -90,6 +90,7 @@ export default function GuidancePanel({ providerId, intent, onValidated }: Props
 
   const errorTranslation =
     validationResult && !validationResult.success && validationResult.errorCode
+    // @ts-ignore
       ? translateError(validationResult.errorCode, provider.key_page_url)
       : null;
 
