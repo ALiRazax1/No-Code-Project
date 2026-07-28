@@ -49,7 +49,8 @@ export type ValidationErrorCode =
   | "NETWORK_ERROR"       // fetch failed, timeout, DNS failure, etc.
   | "BAD_FORMAT"          // key doesn't match the provider's regex — caught before network call
   | "UNKNOWN_PROVIDER"    // provider_id not found in registry
-  | "UNKNOWN_ERROR";      // anything else
+  | "UNKNOWN_ERROR"
+  | "UNKNOWN";      // anything else
 
 // ---------------------------------------------------------------------------
 // Validation result
