@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",
-    "build": "npm run build --workspace=packages/security && npm run build --workspace=apps/web",
+    "build": "npm run build --workspace=packages/security && npm run build --workspace=packages/validation && npm run build --workspace=apps/web",
     "test": "npm run test --workspaces --if-present",
     "test:security": "npm run test --workspace=packages/security",
     "test:validation": "npm run test --workspace=packages/validation",
