@@ -16,6 +16,7 @@ import type {
   VerificationTokenRepository,
 } from "./types";
 
+
 /**
  * ---------------------------------------------------------------------------
  * The database factory
@@ -54,7 +55,7 @@ export async function initDatabase(): Promise<void> {
         mongoUserRepository,
         mongoSessionRepository,
         mongoVerificationTokenRepository,
-      } = await import("./adapters/mongo.js");
+      } = await require("./adapters/mongo") as typeof import("./adapters/mongo");
       await connectMongo(config.db.mongoUri!);
       userRepository = mongoUserRepository;
       sessionRepository = mongoSessionRepository;
