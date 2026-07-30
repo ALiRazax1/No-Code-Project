@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "nodenext",
+    "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "dist",
     "rootDir": "src",
@@ -10,10 +10,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "nodenext",
+    "moduleResolution": "node",
     "declaration": false,
     "sourceMap": true
-  },
+    },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
