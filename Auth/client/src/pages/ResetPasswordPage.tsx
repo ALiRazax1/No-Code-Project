@@ -1,4 +1,3 @@
-import React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ResetPasswordCard } from "../components/ResetPasswordCard";
 
