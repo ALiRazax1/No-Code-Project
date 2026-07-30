@@ -12,6 +12,10 @@
       "dest": "/src/server.ts"
     },
     {
+      "src": "/auth/(.*)",
+      "dest": "/src/server.ts"
+    },
+    {
       "src": "/(.*)",
       "dest": "/src/server.ts"
     }
