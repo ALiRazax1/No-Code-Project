@@ -1,0 +1,19 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "enables the default permissions",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "http:default",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "http://172.25.82.18:2375/**" },
+        { "url": "http://127.0.0.1:2375/**" },
+        { "url": "http://[::1]:2375/**" },
+        { "url": "http://localhost:2375/**" }
+      ]
+    }
+  ]
+}

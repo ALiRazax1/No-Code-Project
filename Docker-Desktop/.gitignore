@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Vite build output
+dist/
+build/
+
+# Rust build output
+src-tauri/target/
+
+# Tauri generated schemas (auto-generated on build)
+src-tauri/gen/
+
+# Environment files
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
